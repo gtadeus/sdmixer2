@@ -3,7 +3,7 @@
 PairFinder::PairFinder()
 {
 }
-
+/*
 int PairFinder::FindPairs(Matrix& input, Matrix& output, int dimensions,
                           double Offset[], double Epsilon[], int FrameColumnC,
                           int& NrOfDifferentFrames, int& multiple_counter, bool create_output = false, int row_stop = -1)
@@ -126,4 +126,10 @@ int PairFinder::FindPairs(Matrix& input, Matrix& output, int dimensions,
     delete[] pFullData;
 
     return numpairs;
+}
+*/
+
+void PairFinder::FindPairs()
+{
+
 }

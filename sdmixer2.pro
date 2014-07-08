@@ -21,4 +21,20 @@ HEADERS  += sdmixer.h \
 
 FORMS    += sdmixer.ui
 
-LIBS += -lgsl -lgslcblas -lm
+LIBS += -lm
+#LIBS += -lgsl -lgslcblas -lm
+
+
+win32:DEPENDPATH += C:\Progra~2\GnuWin32\
+win32:DEPENDPATH += C:\Progra~2\GnuWin32\lib
+win32:INCLUDEPATH += C:\Progra~2\GnuWin32\include
+
+win32:LIBS += -LC:\Progra~2\GnuWin32\lib
+win32:LIBS += -LC:\Progra~2\GnuWin32\bin
+win32:LIBS += -llibgsl
+win32:LIBS += -llibgslcblas
+
+ if(!debug_and_release|build_pass):CONFIG(debug, debug|release) {
+    mac:LIBS = $$member(LIBS, 0) $$member(LIBS, 1)_debug
+    win32:LIBS = $$member(LIBS, 0) $$member(LIBS, 1)d
+ }

@@ -1,4 +1,7 @@
 #include "sdmixer.h"
+#include "reconstructor.h"
+#include "filter.h"
+#include "xmlparser.h"
 #include "ui_sdmixer.h"
 
 #include <QFileDialog>
@@ -28,9 +31,10 @@ sdmixer::sdmixer(QWidget *parent) :
     ui(new Ui::sdmixer)
 {
     ui->setupUi(this);
-
     setAcceptDrops(true);
-    listWidget=ui->listWidget;
+
+    listWidgetInputFiles = ui->listInputFiles;
+    listWidgetFilters = ui->listFilters;
 
 }
 
@@ -38,6 +42,15 @@ sdmixer::~sdmixer()
 {
     delete ui;
 }
+
+//Get everything from ui
+
+bool sdmixer::getRunPairfinder()
+{
+    return ui->runPairFinder_CheckBox->isChecked();
+}
+
+
 void sdmixer::dragEnterEvent(QDragEnterEvent *e)
 {
     if (e->mimeData()->hasUrls()) {
@@ -51,11 +64,12 @@ void sdmixer::dropEvent(QDropEvent *e)
         const QString &fileName = url.toLocalFile();
         qDebug() << "Dropped file:" << fileName;
         insertItem(fileName);
+
     }
 }
 void sdmixer::insertItem(QString filename)
 {
-    QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, listWidget);
+    QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, listWidgetInputFiles);
 
     /*QString itemText = QInputDialog::getText(this, tr("Insert Item"),
         tr("Input text for the new item:"));
@@ -160,9 +174,9 @@ int sdmixer::read_file(char const *fname)
 
     QString qs(firstLine.c_str());
 
-    ui->textEdit->append(QString::number(lines));
-    ui->textEdit->append(QString::number(cols));
-    ui->textEdit->append(qs);
+    ui->textConsole->append(QString::number(lines));
+    ui->textConsole->append(QString::number(cols));
+    ui->textConsole->append(qs);
     return lines;
 }
 
@@ -175,6 +189,27 @@ void sdmixer::on_actionQuit_triggered()
 
 void sdmixer::on_addFileButton_clicked()
 {
+    XMLParser x;
+}
+
+
+void sdmixer::on_startDemixing_clicked()
+{
+   /* Reconstructor r;
+    r.run();*/
+    Filter f;
+    f.run();
 
 }
 
+
+void sdmixer::on_actionAbout_sdmixer_triggered()
+{
+    QMessageBox msgBox(this);
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.setText("<p>sdmixer - Analysis of 2D/3D multicolor SD-dSTORM data</p><p>written by Georgi Tadeus at FMP Berlin,<br>Department for Molecular Pharmacology and Cell Biology</p>Feedback is highly appreciated! <a href='mailto:georgi.tadeus@gmail.com?Subject=sdmixer'>georgi.tadeus@gmail.com</a><p>Many thanks to J. Schmoranzer and A. Lampe!</p><p>If you find this tool useful, please cite:</p><p>Lampe, A., Haucke, V., Sigrist, S. J., Heilemann, M. and Schmoranzer, J. (2012), Multi-colour direct STORM with red emitting carbocyanines. Biology of the Cell, 104: 229–237</p>");
+    int ret = msgBox.exec();
+}

@@ -17,6 +17,16 @@ public:
     ~sdmixer();
     int read_file(const char *file);
     void insertItem(QString filename);
+
+    bool getRunPairfinder();
+    bool getRunFilter();
+    bool getRunReconstructor();
+    int getPixelSize();
+
+    std::vector<double> getOffset();
+    std::vector<double> getEpsilon();
+
+
 protected:
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
@@ -28,9 +38,15 @@ private slots:
 
     void on_addFileButton_clicked();
 
+    void on_startDemixing_clicked();
+
+
+    void on_actionAbout_sdmixer_triggered();
+
 private:
     Ui::sdmixer *ui;
-    QListWidget *listWidget;
+    QListWidget *listWidgetInputFiles;
+    QListWidget *listWidgetFilters;
 };
 
 #endif // SDMIXER_H

@@ -6,21 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>648</width>
-    <height>519</height>
+    <width>707</width>
+    <height>558</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>sdmixer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QTextEdit" name="textEdit">
+   <widget class="QTextEdit" name="textConsole">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>330</y>
-      <width>611</width>
-      <height>81</height>
+      <y>360</y>
+      <width>681</width>
+      <height>131</height>
      </rect>
     </property>
    </widget>
@@ -28,8 +28,8 @@
     <property name="geometry">
      <rect>
       <x>12</x>
-      <y>-1</y>
-      <width>611</width>
+      <y>20</y>
+      <width>681</width>
       <height>321</height>
      </rect>
     </property>
@@ -40,7 +40,7 @@
      <attribute name="title">
       <string>Session</string>
      </attribute>
-     <widget class="QListWidget" name="listWidget">
+     <widget class="QListWidget" name="listInputFiles">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -50,7 +50,7 @@
        </rect>
       </property>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
         <x>300</x>
@@ -68,7 +68,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="removeFiles">
          <property name="text">
           <string>Remove File(s)</string>
          </property>
@@ -88,7 +88,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox">
+        <widget class="QCheckBox" name="runPairFinder_CheckBox">
          <property name="text">
           <string>Run Pair Finder</string>
          </property>
@@ -98,7 +98,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox_2">
+        <widget class="QCheckBox" name="runFilter_CheckBox">
          <property name="text">
           <string>Run Filter</string>
          </property>
@@ -108,7 +108,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox_3">
+        <widget class="QCheckBox" name="runReconstructor_CheckBox">
          <property name="text">
           <string>Run Reconstructor</string>
          </property>
@@ -131,14 +131,14 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="label_23">
+        <widget class="QLabel" name="TextPixelSize">
          <property name="text">
           <string>Pixelsize (nm)</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_19"/>
+        <widget class="QLineEdit" name="pixelSizeNM"/>
        </item>
        <item>
         <spacer name="verticalSpacer_2">
@@ -154,7 +154,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_3">
+        <widget class="QPushButton" name="startDemixing">
          <property name="text">
           <string>Start demixing!</string>
          </property>
@@ -162,14 +162,8 @@
        </item>
       </layout>
      </widget>
-     <zorder>addFileButton</zorder>
-     <zorder>pushButton_2</zorder>
-     <zorder>checkBox</zorder>
-     <zorder>checkBox_2</zorder>
-     <zorder>pushButton_3</zorder>
-     <zorder>checkBox_3</zorder>
-     <zorder>pushButton_3</zorder>
-     <zorder>listWidget</zorder>
+     <zorder>layoutWidget</zorder>
+     <zorder>listInputFiles</zorder>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -180,8 +174,8 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>161</width>
-        <height>261</height>
+        <width>181</width>
+        <height>271</height>
        </rect>
       </property>
       <property name="title">
@@ -190,7 +184,7 @@
       <widget class="QWidget" name="verticalLayoutWidget">
        <property name="geometry">
         <rect>
-         <x>0</x>
+         <x>10</x>
          <y>30</y>
          <width>161</width>
          <height>231</height>
@@ -321,19 +315,19 @@
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>180</x>
+        <x>200</x>
         <y>10</y>
         <width>181</width>
-        <height>291</height>
+        <height>271</height>
        </rect>
       </property>
       <property name="title">
-       <string>Search Range</string>
+       <string>Search Range (&quot;epsilon&quot;)</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_2">
        <property name="geometry">
         <rect>
-         <x>0</x>
+         <x>10</x>
          <y>30</y>
          <width>151</width>
          <height>101</height>
@@ -430,22 +424,22 @@
      <widget class="QGroupBox" name="groupBox_3">
       <property name="geometry">
        <rect>
-        <x>370</x>
+        <x>400</x>
         <y>10</y>
         <width>221</width>
-        <height>251</height>
+        <height>271</height>
        </rect>
       </property>
       <property name="title">
-       <string>Auto Offset</string>
+       <string>Auto Offset (&quot;fishing&quot;)</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_3">
        <property name="geometry">
         <rect>
-         <x>0</x>
+         <x>10</x>
          <y>30</y>
          <width>201</width>
-         <height>129</height>
+         <height>121</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -515,16 +509,12 @@
        </layout>
       </widget>
      </widget>
-     <zorder>groupBox</zorder>
-     <zorder>groupBox_2</zorder>
-     <zorder>groupBox_3</zorder>
-     <zorder>label_10</zorder>
     </widget>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
       <string>Filter</string>
      </attribute>
-     <widget class="QListView" name="listView_2">
+     <widget class="QListWidget" name="listFilters">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -532,6 +522,9 @@
         <width>256</width>
         <height>192</height>
        </rect>
+      </property>
+      <property name="acceptDrops">
+       <bool>true</bool>
       </property>
      </widget>
      <widget class="QWidget" name="verticalLayoutWidget_4">
@@ -545,14 +538,14 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
-        <widget class="QPushButton" name="pushButton_4">
+        <widget class="QPushButton" name="addFilterButton">
          <property name="text">
           <string>Add Filter(s)</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_5">
+        <widget class="QPushButton" name="removeFilterButton">
          <property name="text">
           <string>Remove Filter(s)</string>
          </property>
@@ -579,7 +572,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_15"/>
+        <widget class="QLineEdit" name="maxIntLong_LineEdit"/>
        </item>
        <item>
         <widget class="QLabel" name="label_16">
@@ -589,7 +582,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_16"/>
+        <widget class="QLineEdit" name="maxIntShort_LineEdit"/>
        </item>
        <item>
         <spacer name="verticalSpacer_5">
@@ -612,7 +605,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="lineEdit_17"/>
+        <widget class="QLineEdit" name="precision_LineEdit"/>
        </item>
       </layout>
      </widget>
@@ -641,7 +634,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="lineEdit_13"/>
+          <widget class="QLineEdit" name="xyBinning_LineEdit"/>
          </item>
          <item>
           <widget class="QComboBox" name="comboBox_10">
@@ -672,7 +665,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="lineEdit_11"/>
+          <widget class="QLineEdit" name="zBinning_LineEdit"/>
          </item>
          <item>
           <widget class="QComboBox" name="comboBox_7">
@@ -893,13 +886,13 @@
     <property name="geometry">
      <rect>
       <x>500</x>
-      <y>420</y>
-      <width>118</width>
+      <y>500</y>
+      <width>191</width>
       <height>23</height>
      </rect>
     </property>
     <property name="value">
-     <number>24</number>
+     <number>0</number>
     </property>
    </widget>
   </widget>
@@ -908,14 +901,15 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>648</width>
-     <height>25</height>
+     <width>707</width>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionSave_Preferences"/>
     <addaction name="actionLoad_Settings"/>
     <addaction name="actionOpen"/>
     <addaction name="separator"/>
@@ -929,14 +923,6 @@
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuHelp"/>
-  </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionOpen">
@@ -957,6 +943,11 @@
   <action name="actionAbout_sdmixer">
    <property name="text">
     <string>About sdmixer</string>
+   </property>
+  </action>
+  <action name="actionSave_Preferences">
+   <property name="text">
+    <string>Save Preferences</string>
    </property>
   </action>
  </widget>

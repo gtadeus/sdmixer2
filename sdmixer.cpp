@@ -1,7 +1,6 @@
 #include "sdmixer.h"
 #include "reconstructor.h"
 #include "filter.h"
-#include "xmlparser.h"
 #include "ui_sdmixer.h"
 
 #include <QFileDialog>
@@ -189,7 +188,7 @@ void sdmixer::on_actionQuit_triggered()
 
 void sdmixer::on_addFileButton_clicked()
 {
-    XMLParser x;
+
 }
 
 

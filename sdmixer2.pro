@@ -19,14 +19,12 @@ SOURCES += main.cpp\
     pairfinder.cpp \
     filter.cpp \
     reconstructor.cpp \
-    xmlparser.cpp \
     settings.cpp
 
 HEADERS  += sdmixer.h \
     pairfinder.h \
     filter.h \
     reconstructor.h \
-    xmlparser.h \
     settings.h
 
 FORMS    += sdmixer.ui

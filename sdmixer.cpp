@@ -2,16 +2,16 @@
 #include "reconstructor.h"
 #include "filter.h"
 #include "ui_sdmixer.h"
+#include "settings.h"
 
 #include <QFileDialog>
 #include <QFile>
 #include <QMessageBox>
-#include <QTextStream>
 
 #include <QInputDialog>
 #include <QMimeData>
 #include <QDragEnterEvent>
-#include <QDebug>
+
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -19,22 +19,48 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <string>
-#include <vector>
-
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_statistics.h>
 
 sdmixer::sdmixer(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::sdmixer)
 {
+
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    listWidgetInputFiles = ui->listInputFiles;
-    listWidgetFilters = ui->listFilters;
+    listWidgetInputFiles = ui->listWidget_InputFiles;
+    listWidgetFilters = ui->listWidget_FilterFiles;
+    console = ui->textConsole;
+    console->acceptRichText();
 
+    console->append(timestamp() + " : Started sdmixer");
+    //console->append(error_msg("some error msg"));
+}
+//small helper functions
+QString sdmixer::timestamp()
+{
+    QString retval;
+    QTextStream out(&retval);
+
+    std::time_t t = std::time(NULL);
+    char c_string[100];
+    if (std::strftime(c_string, sizeof(c_string), "%Y-%m-%d %X", std::localtime(&t)))
+    {
+        out << c_string;
+    }
+    return retval;
+}
+QString sdmixer::error_msg(QString msg)
+{
+    QString retval;
+    QTextStream out(&retval);
+    out << "<font color=\"#FF0000\">" << timestamp() << " : ERROR! " << msg << "</font><br>";
+    return retval;
+}
+
+void sdmixer::writeToConsole(QString q)
+{
+    console->append(q);
 }
 
 sdmixer::~sdmixer()
@@ -44,51 +70,138 @@ sdmixer::~sdmixer()
 
 //Get everything from ui
 
-bool sdmixer::getRunPairfinder()
+bool sdmixer::getSettingsFromUI()
 {
-    return ui->runPairFinder_CheckBox->isChecked();
+    InputFiles.clear();
+
+    for(int i = 0; i < ui->listWidget_InputFiles->count(); ++i)
+    {
+        QListWidgetItem* item = ui->listWidget_InputFiles->item(i);
+        InputFiles.push_back(item->text());
+    }
+    if(InputFiles.empty())
+    {
+        QString err = error_msg("no input files selected");
+        writeToConsole(err);
+        //return false;
+    }
+
+    runPairFinder = ui->checkBox_runPairFinder->isChecked();
+    runFilter = ui->checkBox_runFilter->isChecked();
+    runReconstructor = ui->checkBox_runReconstructor->isChecked();
+
+    force2D = ui->checkBox_force2D->isChecked();
+
+    pixelSizeNM = QString(ui->lineEdit_pixelSizeNM->text()).toInt();
+
+    QString temp;
+    offset.clear();
+    temp = ui->lineEdit_xOffset->text();
+    if( !temp.isEmpty() )
+    {
+        offset.push_back(temp.toDouble());
+        temp = ui->lineEdit_yOffset->text();
+        if( ! temp.isEmpty() )
+        {
+            offset.push_back(temp.toDouble());
+            temp = ui->lineEdit_zOffset->text();
+
+            if( ! temp.isEmpty() )
+            {
+                offset.push_back(temp.toDouble());
+            }
+        }
+    }
+    epsilon.clear();
+    temp = ui->lineEdit_xEpsilon->text();
+    if( !temp.isEmpty() )
+    {
+        epsilon.push_back(temp.toDouble());
+        temp = ui->lineEdit_yEpsilon->text();
+        if( ! temp.isEmpty() )
+        {
+            epsilon.push_back(temp.toDouble());
+            temp = ui->lineEdit_zEpsilon->text();
+
+            if( ! temp.isEmpty() )
+            {
+                epsilon.push_back(temp.toDouble());
+            }
+        }
+    }
+
+    fishingSettings.run = ui->checkBox_runFishing->isChecked() ;
+    if (fishingSettings.run)
+    {
+        fishingSettings.increment = QString(ui->lineEdit_FishingIncrement->text()).toInt();
+        fishingSettings.range = QString(ui->lineEdit_FishingRange->text()).toInt();
+        fishingSettings.subset = QString(ui->lineEdit_FishingSubset->text()).toInt();
+    }
+
+
+    maxIntensityLong =  QString(ui->lineEdit_maxIntLong->text()).toDouble();
+    maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
+    precision = QString(ui->lineEdit_precision->text()).toDouble();
+
+    xyBinning = QString(ui->lineEdit_xyBinning->text()).toDouble();
+    zBinning = QString(ui->lineEdit_zBinning->text()).toDouble();
+
+    FilterFiles.clear();
+    for(int i = 0; i < ui->listWidget_FilterFiles->count(); ++i)
+    {
+        QListWidgetItem* item = ui->listWidget_FilterFiles->item(i);
+        FilterFiles.push_back(item->text());
+    }
+
+    return true;
+
+}
+void sdmixer::setSettingsToUI(Settings s){
+    ui->lineEdit_pixelSizeNM->setText(QString::number(s.getPixelSizeNM()));
 }
 
 
-void sdmixer::dragEnterEvent(QDragEnterEvent *e)
-{
+std::vector<QString> sdmixer::getInputFiles(){return this->InputFiles;}
+bool sdmixer::getRunPairfinder(){return this->runPairFinder;}
+bool sdmixer::getRunFilter(){return this->runFilter;}
+bool sdmixer::getRunReconstructor(){return this->runReconstructor;}
+bool sdmixer::getForce2D(){return this->force2D;}
+int sdmixer::getPixelSize(){return this->pixelSizeNM;}
+std::vector<double> sdmixer::getOffset(){return this->offset;}
+std::vector<double> sdmixer::getEpsilon(){return this->epsilon;}
+sdmixer::fishing sdmixer::getFishing(){return this->fishingSettings;}
+std::vector<QString> sdmixer::getFilterFiles(){return this->FilterFiles;}
+double sdmixer::getMaxIntShort(){return this->maxIntensityShort;}
+double sdmixer::getMaxIntLong(){return this->maxIntensityLong;}
+double sdmixer::getPrecision(){return this->precision;}
+double sdmixer::getReconstructor_xyBinning(){return this->xyBinning;}
+double sdmixer::getReconstructor_zBinning(){return this->zBinning;}
+
+
+
+
+// Drag & Drop implementation
+// Input Files can be draged and dropped onto MainWindow
+void sdmixer::dragEnterEvent(QDragEnterEvent *e){
     if (e->mimeData()->hasUrls()) {
         e->acceptProposedAction();
     }
 }
 
-void sdmixer::dropEvent(QDropEvent *e)
-{
+void sdmixer::dropEvent(QDropEvent *e){
     foreach (const QUrl &url, e->mimeData()->urls()) {
         const QString &fileName = url.toLocalFile();
         qDebug() << "Dropped file:" << fileName;
-        insertItem(fileName);
+        insertItem(fileName, listWidgetInputFiles);
 
     }
 }
-void sdmixer::insertItem(QString filename)
-{
-    QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, listWidgetInputFiles);
-
-    /*QString itemText = QInputDialog::getText(this, tr("Insert Item"),
-        tr("Input text for the new item:"));
-
-    if (itemText.isNull())
-        return;
-
-
-    QListWidgetItem *newItem = new QListWidgetItem;
-    newItem->setText(itemText);
-
-    int row = listWidget->row(listWidget->currentItem());
-
-    listWidget->insertItem(row, newItem);*/
-
+void sdmixer::insertItem(QString filename, QListWidget *list){
+    QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, list);
 }
 
 
-void sdmixer::on_actionOpen_triggered()
-{
+void sdmixer::on_actionOpen_triggered(){
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QString(),
             tr("Localisations File (*.txt);;PairFinder Files (*.out)"));
 
@@ -106,8 +219,7 @@ void sdmixer::on_actionOpen_triggered()
 
 }
 
-int sdmixer::read_file(char const *fname)
-{
+int sdmixer::read_file(char const *fname){
     int lines = 0;
     int cols = 0;
     double dd;
@@ -145,13 +257,15 @@ int sdmixer::read_file(char const *fname)
     FILE *infile = fopen(fname, "r");
     char buffer[4096];
 
-    gsl_matrix *K = gsl_matrix_alloc(lines,cols);
+    double inputdata[lines*cols];
+
+    //gsl_matrix *K = gsl_matrix_alloc(lines,cols);
    // double* a = new double[lines*cols];
 
     int curr_line=0;
 
     fseek ( infile , int(firstLine.length()), SEEK_SET );
-
+    int counter = 0;
     while (fgets(buffer, sizeof(buffer), infile))
     {
             double d;
@@ -160,9 +274,11 @@ int sdmixer::read_file(char const *fname)
             int curr_col = 0;
             while (lineStream >> d)
             {
+                inputdata[counter] = d;
                 //ui->textEdit->append(QString::number(d) + "  " +  QString::number(curr_line) +  "  " + QString::number(curr_col) + "\n" );
-                gsl_matrix_set(K, curr_line, curr_col, d);
+                //gsl_matrix_set(K, curr_line, curr_col, d);
                 //a[curr_line*cols+curr_col]=d;
+                ++counter;
                 ++curr_col;
             }
 
@@ -173,37 +289,57 @@ int sdmixer::read_file(char const *fname)
 
     QString qs(firstLine.c_str());
 
-    ui->textConsole->append(QString::number(lines));
+    /*ui->textConsole->append(QString::number(lines));
     ui->textConsole->append(QString::number(cols));
     ui->textConsole->append(qs);
+    ui->textConsole->append(QString::number(inputdata[9 * cols + 7]));*/
+    QString message;
+    QTextStream out(&message);
+    out << timestamp() << " : File " << fname << " loaded, " << lines << " lines <br>";
+    console->append(message);
     return lines;
 }
 
-void sdmixer::on_actionQuit_triggered()
-{
+void sdmixer::on_actionQuit_triggered(){
     qApp->quit();
 }
 
 
 
-void sdmixer::on_addFileButton_clicked()
-{
+void sdmixer::on_addFileButton_clicked(){
+    QStringList fileName = QFileDialog::getOpenFileNames(this, tr("Open File"), QString(), tr("Localisations File (*.txt);;PairFinder Files (*.out);;All Files (*.*)"));
 
+    if (!fileName.isEmpty())
+    {
+        for(auto i : fileName)
+        {
+            insertItem(i, listWidgetInputFiles);
+        }
+    }
 }
 
 
 void sdmixer::on_startDemixing_clicked()
 {
    /* Reconstructor r;
-    r.run();*/
+    r.run();
     Filter f;
-    f.run();
+    f.run();*/
+    //if(getSettingsFromUI())
+    {
+      /* getSettingsFromUI();
+
+        Settings s(this);
+        s.initXML();
+        s.writeSettingsToFile("test.conf");*/
+    }
+    Settings s(QString("test.conf"));
+    setSettingsToUI(s);
 
 }
 
 
-void sdmixer::on_actionAbout_sdmixer_triggered()
-{
+void sdmixer::on_actionAbout_sdmixer_triggered(){
     QMessageBox msgBox(this);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
@@ -211,4 +347,14 @@ void sdmixer::on_actionAbout_sdmixer_triggered()
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.setText("<p>sdmixer - Analysis of 2D/3D multicolor SD-dSTORM data</p><p>written by Georgi Tadeus at FMP Berlin,<br>Department for Molecular Pharmacology and Cell Biology</p>Feedback is highly appreciated! <a href='mailto:georgi.tadeus@gmail.com?Subject=sdmixer'>georgi.tadeus@gmail.com</a><p>Many thanks to J. Schmoranzer and A. Lampe!</p><p>If you find this tool useful, please cite:</p><p>Lampe, A., Haucke, V., Sigrist, S. J., Heilemann, M. and Schmoranzer, J. (2012), Multi-colour direct STORM with red emitting carbocyanines. Biology of the Cell, 104: 229–237</p>");
     int ret = msgBox.exec();
+}
+
+void sdmixer::on_removeFilterButton_clicked()
+{
+
+}
+
+void sdmixer::on_removeFilesButton_clicked()
+{
+    qDeleteAll(listWidgetInputFiles->selectedItems());
 }

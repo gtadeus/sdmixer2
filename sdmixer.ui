@@ -40,20 +40,23 @@
      <attribute name="title">
       <string>Session</string>
      </attribute>
-     <widget class="QListWidget" name="listInputFiles">
+     <widget class="QListWidget" name="listWidget_InputFiles">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>271</width>
+        <width>431</width>
         <height>271</height>
        </rect>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
      </widget>
      <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
-        <x>300</x>
+        <x>460</x>
         <y>10</y>
         <width>160</width>
         <height>271</height>
@@ -68,7 +71,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="removeFiles">
+        <widget class="QPushButton" name="removeFilesButton">
          <property name="text">
           <string>Remove File(s)</string>
          </property>
@@ -88,7 +91,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QCheckBox" name="runPairFinder_CheckBox">
+        <widget class="QCheckBox" name="checkBox_runPairFinder">
          <property name="text">
           <string>Run Pair Finder</string>
          </property>
@@ -98,7 +101,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="runFilter_CheckBox">
+        <widget class="QCheckBox" name="checkBox_runFilter">
          <property name="text">
           <string>Run Filter</string>
          </property>
@@ -108,7 +111,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="runReconstructor_CheckBox">
+        <widget class="QCheckBox" name="checkBox_runReconstructor">
          <property name="text">
           <string>Run Reconstructor</string>
          </property>
@@ -131,6 +134,26 @@
         </spacer>
        </item>
        <item>
+        <widget class="QCheckBox" name="checkBox_force2D">
+         <property name="text">
+          <string>Force 2D Analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_11">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <widget class="QLabel" name="TextPixelSize">
          <property name="text">
           <string>Pixelsize (nm)</string>
@@ -138,7 +161,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="pixelSizeNM"/>
+        <widget class="QLineEdit" name="lineEdit_pixelSizeNM"/>
        </item>
        <item>
         <spacer name="verticalSpacer_2">
@@ -163,7 +186,7 @@
       </layout>
      </widget>
      <zorder>layoutWidget</zorder>
-     <zorder>listInputFiles</zorder>
+     <zorder>listWidget_InputFiles</zorder>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -201,10 +224,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_7"/>
+           <widget class="QLineEdit" name="lineEdit_xOffset"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_6">
+           <widget class="QComboBox" name="comboBox_xOffset">
             <item>
              <property name="text">
               <string>px</string>
@@ -229,10 +252,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_5"/>
+           <widget class="QLineEdit" name="lineEdit_yOffset"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_4">
+           <widget class="QComboBox" name="comboBox_yOffset">
             <item>
              <property name="text">
               <string>px</string>
@@ -257,10 +280,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_6"/>
+           <widget class="QLineEdit" name="lineEdit_zOffset"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_5">
+           <widget class="QComboBox" name="comboBox_zOffset">
             <item>
              <property name="text">
               <string>px</string>
@@ -344,10 +367,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit"/>
+           <widget class="QLineEdit" name="lineEdit_xEpsilon"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox">
+           <widget class="QComboBox" name="comboBox_xEpsilon">
             <item>
              <property name="text">
               <string>px</string>
@@ -372,10 +395,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_2"/>
+           <widget class="QLineEdit" name="lineEdit_yEpsilon"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_2">
+           <widget class="QComboBox" name="comboBox_yEpsilon">
             <item>
              <property name="text">
               <string>px</string>
@@ -400,10 +423,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_3"/>
+           <widget class="QLineEdit" name="lineEdit_zEpsilon"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_3">
+           <widget class="QComboBox" name="comboBox_zEpsilon">
             <item>
              <property name="text">
               <string>px</string>
@@ -444,7 +467,7 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
-         <widget class="QCheckBox" name="checkBox_4">
+         <widget class="QCheckBox" name="checkBox_runFishing">
           <property name="text">
            <string>Enable Auto Offset</string>
           </property>
@@ -460,10 +483,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_10"/>
+           <widget class="QLineEdit" name="lineEdit_FishingIncrement"/>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_9">
+           <widget class="QComboBox" name="comboBox_fishingIncrement">
             <item>
              <property name="text">
               <string>px</string>
@@ -488,7 +511,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_8"/>
+           <widget class="QLineEdit" name="lineEdit_FishingRange"/>
           </item>
          </layout>
         </item>
@@ -502,7 +525,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_9"/>
+           <widget class="QLineEdit" name="lineEdit_FishingSubset"/>
           </item>
          </layout>
         </item>
@@ -514,7 +537,7 @@
      <attribute name="title">
       <string>Filter</string>
      </attribute>
-     <widget class="QListWidget" name="listFilters">
+     <widget class="QListWidget" name="listWidget_FilterFiles">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -572,7 +595,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="maxIntLong_LineEdit"/>
+        <widget class="QLineEdit" name="lineEdit_maxIntLong"/>
        </item>
        <item>
         <widget class="QLabel" name="label_16">
@@ -582,7 +605,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="maxIntShort_LineEdit"/>
+        <widget class="QLineEdit" name="lineEdit_maxIntShort"/>
        </item>
        <item>
         <spacer name="verticalSpacer_5">
@@ -605,7 +628,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="precision_LineEdit"/>
+        <widget class="QLineEdit" name="lineEdit_precision"/>
        </item>
       </layout>
      </widget>
@@ -619,7 +642,7 @@
        <rect>
         <x>20</x>
         <y>20</y>
-        <width>281</width>
+        <width>221</width>
         <height>221</height>
        </rect>
       </property>
@@ -634,10 +657,10 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="xyBinning_LineEdit"/>
+          <widget class="QLineEdit" name="lineEdit_xyBinning"/>
          </item>
          <item>
-          <widget class="QComboBox" name="comboBox_10">
+          <widget class="QComboBox" name="comboBox_xyBinning">
            <item>
             <property name="text">
              <string>px</string>
@@ -665,10 +688,10 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="zBinning_LineEdit"/>
+          <widget class="QLineEdit" name="lineEdit_zBinning"/>
          </item>
          <item>
-          <widget class="QComboBox" name="comboBox_7">
+          <widget class="QComboBox" name="comboBox_zBinning">
            <item>
             <property name="text">
              <string>px</string>
@@ -716,7 +739,7 @@
           <widget class="QLineEdit" name="lineEdit_12"/>
          </item>
          <item>
-          <widget class="QComboBox" name="comboBox_8">
+          <widget class="QComboBox" name="comboBox_FWHM_xy">
            <item>
             <property name="text">
              <string>px</string>
@@ -744,7 +767,7 @@
           <widget class="QLineEdit" name="lineEdit_14"/>
          </item>
          <item>
-          <widget class="QComboBox" name="comboBox_11">
+          <widget class="QComboBox" name="comboBox_FWHM_z">
            <item>
             <property name="text">
              <string>px</string>
@@ -771,8 +794,8 @@
        <rect>
         <x>20</x>
         <y>20</y>
-        <width>419</width>
-        <height>178</height>
+        <width>311</width>
+        <height>191</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_14">
@@ -895,6 +918,19 @@
      <number>0</number>
     </property>
    </widget>
+   <widget class="QLabel" name="label_Status">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>500</y>
+      <width>131</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -902,7 +938,7 @@
      <x>0</x>
      <y>0</y>
      <width>707</width>
-     <height>18</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -910,6 +946,7 @@
      <string>File</string>
     </property>
     <addaction name="actionSave_Preferences"/>
+    <addaction name="actionSave_Settings_as_Default"/>
     <addaction name="actionLoad_Settings"/>
     <addaction name="actionOpen"/>
     <addaction name="separator"/>
@@ -947,7 +984,12 @@
   </action>
   <action name="actionSave_Preferences">
    <property name="text">
-    <string>Save Preferences</string>
+    <string>Save Settings</string>
+   </property>
+  </action>
+  <action name="actionSave_Settings_as_Default">
+   <property name="text">
+    <string>Save Settings as Default</string>
    </property>
   </action>
  </widget>

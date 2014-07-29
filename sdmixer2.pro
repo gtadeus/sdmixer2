@@ -12,6 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = sdmixer2
 TEMPLATE = app
 CONFIG += c++11
+win32:RC_FILE = run.rc
 
 
 SOURCES += main.cpp\

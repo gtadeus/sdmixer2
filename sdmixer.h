@@ -1,6 +1,8 @@
 #ifndef SDMIXER_H
 #define SDMIXER_H
 
+#define DEFAULT_SETTINGS "default_settings.txt"
+
 #include <QMainWindow>
 #include <QListWidget>
 #include <QDebug>
@@ -38,6 +40,7 @@ public:
     void writeToConsole(QString q);
     bool getSettingsFromUI();
     void setSettingsToUI(Settings s);
+    bool prepareForRun();
 
 
     bool getRunPairfinder();
@@ -45,8 +48,8 @@ public:
     bool getRunReconstructor();
     bool getForce2D();
     int getPixelSize();
-    std::vector<double> getOffset();
-    std::vector<double> getEpsilon();
+    double getOffset(int dim);
+    double getEpsilon(int dim);
     fishing getFishing();
     std::vector<QString> getInputFiles();
     std::vector<QString> getFilterFiles();
@@ -55,22 +58,6 @@ public:
     double getPrecision();
     double getReconstructor_xyBinning();
     double getReconstructor_zBinning();
-
-    void setInputFiles(std::vector<QString> v);
-    void setRunPairfinder(bool val);
-    void setRunFilter(bool val);
-    void setRunReconstructor(bool val);
-    void setForce2D(bool val);
-    void setPixelSize(int val);
-    void setOffset(std::vector<double> v);
-    void setEpsilon(std::vector<double> v);
-    void setFishing(fishing f);
-    void setFilterFiles(std::vector<QString> v);
-    void setMaxIntShort(int val);
-    void setMaxIntLong(int val);
-    void setPrecision(double val);
-    void setReconstructor_xyBinning(double val);
-    void setReconstructor_zBinning(double val);
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event);
@@ -87,6 +74,12 @@ private slots:
 
     void on_removeFilesButton_clicked();
 
+    void on_actionSave_Settings_as_Default_triggered();
+
+    void on_actionLoad_Settings_triggered();
+
+    void on_actionSave_Preferences_triggered();
+
 private:
     std::vector<QString> InputFiles;
     bool runPairFinder=false;
@@ -94,8 +87,11 @@ private:
     bool runReconstructor=false;
     bool force2D=false;
     int pixelSizeNM=0;
-    std::vector<double> offset;
-    std::vector<double> epsilon;
+
+    static const int max_dims = 3;
+    double offset[max_dims]={0};
+    double epsilon[max_dims]={0};
+
     fishing fishingSettings;
     int maxIntensityLong=0;
     int maxIntensityShort=0;

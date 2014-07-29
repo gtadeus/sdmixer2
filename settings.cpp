@@ -24,8 +24,12 @@ Settings::Settings(sdmixer *s)
 
     setForce2D(s->getForce2D());
 
-    setOffset(s->getOffset());
-    setEpsilon(s->getEpsilon());
+    for(int i = 0; i< max_dims; ++i)
+    {
+        setOffset(i, s->getOffset(i));
+        setEpsilon(i, s->getEpsilon(i));
+    }
+
     setFishing(s->getFishing());
 
     setMaxIntLong(s->getMaxIntLong());
@@ -90,10 +94,11 @@ void Settings::initXML(){
     QDomElement qdOffset = createField("Offset");
     pairfinder.appendChild(qdOffset);
 
-    QString dimNames[3] = {"x", "y", "z"};
+    QString dimNames[max_dims] = {"x", "y", "z"};
 
     for( int i = 0; i < max_dims; ++i)
     {
+        qDebug()<<i;
         QDomElement child = appendChildNode(qdOffset, dimNames[i], offset[i]);
         child.setAttribute("unit", "px");
     }
@@ -165,16 +170,40 @@ void Settings::loadFromFile(QString file){
       inFile.close();
 
     }
-    QDomElement documentElement = settingsFile.documentElement();
-
-    retrieveElements(documentElement, "PairFinderSettings", "name");
-
     QDomElement element = settingsFile.documentElement();
+
     for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
     {
         QDomElement e = n.toElement();
         if( e.tagName() == "field" )
         {
+            if( e.attribute("name") == "GeneralSettings")
+            {
+                for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
+                {
+                    QDomElement f = m.toElement();
+                    if (f.attribute("name") == "pixelSizeNM")
+                    {
+                        pixelSizeNM = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "runPairFinder")
+                    {
+                        runPairFinder = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "runFilter")
+                    {
+                        runFilter = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "runReconstructor")
+                    {
+                        runReconstructor = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "force2D")
+                    {
+                        force2D = f.attribute("number").toInt();
+                    }
+                }
+            }
             if( e.attribute("name") == "PairFinderSettings")
             {
                 for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
@@ -186,11 +215,11 @@ void Settings::loadFromFile(QString file){
                         {
                             QDomElement ee = mm.toElement();
                             if(ee.attribute("name") == "x")
-                                qDebug()<<"x-Offset " << ee.attribute("number");
+                                offset[0]=ee.attribute("number").toDouble();
                             if(ee.attribute("name") == "y")
-                                qDebug()<<"y-Offset " << ee.attribute("number");
+                                offset[1]=ee.attribute("number").toDouble();
                             if(ee.attribute("name") == "z")
-                                qDebug()<<"z-Offset " << ee.attribute("number");
+                                offset[2]=ee.attribute("number").toDouble();
                         }
                     }
                     if (f.attribute("name") == "Epsilon")
@@ -199,11 +228,11 @@ void Settings::loadFromFile(QString file){
                         {
                             QDomElement ee = mm.toElement();
                             if(ee.attribute("name") == "x")
-                                qDebug()<<"x-Epsilon " << ee.attribute("number");
+                                epsilon[0]=ee.attribute("number").toDouble();
                             if(ee.attribute("name") == "y")
-                                qDebug()<<"y-Epsilon " << ee.attribute("number");
+                                epsilon[1]=ee.attribute("number").toDouble();
                             if(ee.attribute("name") == "z")
-                                qDebug()<<"z-Epsilon " << ee.attribute("number");
+                                epsilon[2]=ee.attribute("number").toDouble();
                         }
 
                     }
@@ -214,15 +243,19 @@ void Settings::loadFromFile(QString file){
                             QDomElement f = m.toElement();
                             if (f.attribute("name") == "run")
                             {
+                                fishing.run = f.attribute("number").toInt();
                             }
                             if (f.attribute("name") == "increment")
                             {
+                                fishing.increment = f.attribute("number").toInt();
                             }
                             if (f.attribute("name") == "range")
                             {
+                                fishing.range = f.attribute("number").toInt();
                             }
                             if (f.attribute("name") == "subset")
                             {
+                                fishing.subset = f.attribute("number").toInt();
                             }
                         }
                     }
@@ -235,12 +268,15 @@ void Settings::loadFromFile(QString file){
                     QDomElement f = m.toElement();
                     if (f.attribute("name") == "maxIntShort")
                     {
+                        maxIntensityShort = f.attribute("number").toInt();
                     }
                     if (f.attribute("name") == "maxIntLong")
                     {
+                        maxIntensityLong = f.attribute("number").toInt();
                     }
                     if (f.attribute("name") == "precision")
                     {
+                        precision = f.attribute("number").toDouble();
                     }
                 }
             }
@@ -251,24 +287,28 @@ void Settings::loadFromFile(QString file){
                     QDomElement f = m.toElement();
                     if (f.attribute("name") == "xyBinning")
                     {
+                        xyBinning = f.attribute("number").toDouble();
                     }
                     if (f.attribute("name") == "zBinning")
                     {
+                        zBinning = f.attribute("number").toDouble();
                     }
                     if (f.attribute("name") == "nonLinearHistEqual")
                     {
+
                     }
                     if (f.attribute("name") == "performConvolution")
                     {
+
                     }
                     if (f.attribute("name") == "FWHM_xy")
                     {
+
                     }
                     if (f.attribute("name") == "FWHM_z")
                     {
                     }
                 }
-
             }
             if( e.attribute("name") == "ExpertSettings")
             {
@@ -285,40 +325,8 @@ void Settings::loadFromFile(QString file){
                     {
                     }
                 }
-
             }
         }
-
     }
-
-}
-void Settings::retrieveElements2(QDomNodeList nodes)
-{
-
-    qDebug() << "# nodes = " << nodes.count();
-    for(int i = 0; i < nodes.count(); i++)
-    {
-        QDomNode elm = nodes.at(i);
-        if(elm.isElement())
-        {
-            QDomElement e = elm.toElement();
-            //qDebug() << e.attribute(att);
-        }
-    }
-}
-
-void Settings::retrieveElements(QDomElement root, QString tag, QString att)
-{
-    QDomNodeList nodes = root.elementsByTagName(tag);
-
-    qDebug() << "# nodes = " << nodes.count();
-    for(int i = 0; i < nodes.count(); i++)
-    {
-        QDomNode elm = nodes.at(i);
-        if(elm.isElement())
-        {
-            QDomElement e = elm.toElement();
-            qDebug() << e.attribute(att);
-        }
-    }
+    qDebug() << offset[2];
 }

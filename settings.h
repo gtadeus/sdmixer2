@@ -14,7 +14,6 @@ public:
     Settings(QString file); // open file
     void writeSettingsToFile(QString fileName);
     void loadFromFile(QString file);
-    void WriteSettingsToFile(QString fileName);
     void initXML();
     void retrieveElements(QDomElement root, QString tag, QString att);
     void retrieveElements2(QDomNodeList nodes);
@@ -29,18 +28,8 @@ public:
     void setForce2D(bool v){this->force2D=v;}
     void setPixelSizeNM(int px){this->pixelSizeNM = px;}
     //PairFinder
-    void setOffset(std::vector<double> val){
-        for(int i=0; i < val.size(); ++i)
-        {
-         this->offset[i]=val[i];
-        }
-    }
-    void setEpsilon(std::vector<double> val){
-        for(int i=0; i < val.size(); ++i)
-        {
-         this->epsilon[i]= val[i];
-        }
-    }
+    void setOffset(int dim, double val){offset[dim]=val;}
+    void setEpsilon(int dim, double val){epsilon[dim]= val;}
     void setFishing(sdmixer::fishing f){this->fishing=f;}
     //Filter
     void setFilterFiles(std::vector<QString> s){this->FilterFiles=s;}
@@ -54,16 +43,40 @@ public:
 
 
     int getPixelSizeNM(){return pixelSizeNM;}
+    bool getRunPairFinder(){return runPairFinder;}
+    bool getRunFilter(){return runFilter;}
+    bool getRunReconstructor(){return runPairFinder;}
+    bool getForce2D(){return force2D;}
 
+    int getOffset(int dim){
+        if(dim < max_dims)
+            return offset[dim];
+        else
+            return 0;
+    }
+    int getEpsilon(int dim){
+        if(dim < max_dims)
+            return epsilon[dim];
+        else
+            return 0;
+    }
+
+    sdmixer::fishing getFishing(){return fishing;}
+    int getMaxIntLong(){return maxIntensityLong;}
+    int getMaxIntShort(){return maxIntensityShort;}
+    double getPrecision(){return precision;}
+
+    double getXYbinning(){return xyBinning;}
+    double getZbinning(){return zBinning;}
 
 private:
 
-    bool runPairFinder;
-    bool runFilter;
-    bool runReconstructor;
-    bool force2D;
+    bool runPairFinder=true;
+    bool runFilter=true;
+    bool runReconstructor=true;
+    bool force2D=true;
 
-    int pixelSizeNM;
+    int pixelSizeNM=0;
 
     static const int max_dims = 3;
     double offset[max_dims]={0};
@@ -71,12 +84,12 @@ private:
 
     sdmixer::fishing fishing;
 
-    int maxIntensityLong;
-    int maxIntensityShort;
-    double precision;
+    int maxIntensityLong=0;
+    int maxIntensityShort=0;
+    double precision=0.0;
 
-    double xyBinning;
-    double zBinning;
+    double xyBinning=0;
+    double zBinning=0;
 
     std::vector<QString> InputFiles;
     std::vector<QString> FilterFiles;

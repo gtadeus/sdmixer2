@@ -35,6 +35,21 @@ sdmixer::sdmixer(QWidget *parent) :
 
     console->append(timestamp() + " : Started sdmixer");
     //console->append(error_msg("some error msg"));
+
+    QFile file(DEFAULT_SETTINGS);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug()<< "loading default settings...";
+        file.close();
+        Settings s(DEFAULT_SETTINGS);
+        setSettingsToUI(s);
+
+    }
+    else
+    {
+        qDebug() << "no default settings available";
+    }
+
 }
 //small helper functions
 QString sdmixer::timestamp()
@@ -81,8 +96,8 @@ bool sdmixer::getSettingsFromUI()
     }
     if(InputFiles.empty())
     {
-        QString err = error_msg("no input files selected");
-        writeToConsole(err);
+        //QString err = error_msg("no input files selected");
+        //writeToConsole(err);
         //return false;
     }
 
@@ -95,37 +110,36 @@ bool sdmixer::getSettingsFromUI()
     pixelSizeNM = QString(ui->lineEdit_pixelSizeNM->text()).toInt();
 
     QString temp;
-    offset.clear();
     temp = ui->lineEdit_xOffset->text();
     if( !temp.isEmpty() )
     {
-        offset.push_back(temp.toDouble());
+        offset[0]=temp.toDouble();
         temp = ui->lineEdit_yOffset->text();
         if( ! temp.isEmpty() )
         {
-            offset.push_back(temp.toDouble());
+            offset[1]=temp.toDouble();
             temp = ui->lineEdit_zOffset->text();
 
             if( ! temp.isEmpty() )
             {
-                offset.push_back(temp.toDouble());
+                offset[2]=temp.toDouble();
             }
         }
     }
-    epsilon.clear();
+
     temp = ui->lineEdit_xEpsilon->text();
     if( !temp.isEmpty() )
     {
-        epsilon.push_back(temp.toDouble());
+        epsilon[0]=temp.toDouble();
         temp = ui->lineEdit_yEpsilon->text();
         if( ! temp.isEmpty() )
         {
-            epsilon.push_back(temp.toDouble());
+            epsilon[1]=temp.toDouble();
             temp = ui->lineEdit_zEpsilon->text();
 
             if( ! temp.isEmpty() )
             {
-                epsilon.push_back(temp.toDouble());
+                epsilon[2]=temp.toDouble();
             }
         }
     }
@@ -158,6 +172,33 @@ bool sdmixer::getSettingsFromUI()
 }
 void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_pixelSizeNM->setText(QString::number(s.getPixelSizeNM()));
+    ui->checkBox_runPairFinder->setChecked(s.getRunPairFinder());
+    ui->checkBox_runFilter->setChecked(s.getRunFilter());
+    ui->checkBox_runPairFinder->setChecked(s.getRunReconstructor());
+    ui->checkBox_force2D->setChecked(s.getForce2D());
+
+
+    ui->lineEdit_xOffset->setText(QString::number(s.getOffset(0)));
+    ui->lineEdit_yOffset->setText(QString::number(s.getOffset(1)));
+    ui->lineEdit_zOffset->setText(QString::number(s.getOffset(2)));
+
+    ui->lineEdit_xEpsilon->setText(QString::number(s.getEpsilon(0)));
+    ui->lineEdit_yEpsilon->setText(QString::number(s.getEpsilon(1)));
+    ui->lineEdit_zEpsilon->setText(QString::number(s.getEpsilon(2)));
+
+    fishing f =s.getFishing();
+
+    ui->checkBox_runFishing->setChecked(f.run);
+    ui->lineEdit_FishingIncrement->setText(QString::number(f.increment));
+    ui->lineEdit_FishingRange->setText(QString::number(f.range));
+    ui->lineEdit_FishingSubset->setText(QString::number(f.subset));
+
+    ui->lineEdit_maxIntLong->setText(QString::number(s.getMaxIntLong()));
+    ui->lineEdit_maxIntShort->setText(QString::number(s.getMaxIntShort()));
+    ui->lineEdit_precision->setText(QString::number(s.getPrecision()));
+
+    ui->lineEdit_xyBinning->setText(QString::number(s.getXYbinning()));
+    ui->lineEdit_zBinning->setText(QString::number(s.getZbinning()));
 }
 
 
@@ -167,8 +208,8 @@ bool sdmixer::getRunFilter(){return this->runFilter;}
 bool sdmixer::getRunReconstructor(){return this->runReconstructor;}
 bool sdmixer::getForce2D(){return this->force2D;}
 int sdmixer::getPixelSize(){return this->pixelSizeNM;}
-std::vector<double> sdmixer::getOffset(){return this->offset;}
-std::vector<double> sdmixer::getEpsilon(){return this->epsilon;}
+double sdmixer::getOffset(int dim){return offset[dim];}
+double sdmixer::getEpsilon(int dim){return epsilon[dim];}
 sdmixer::fishing sdmixer::getFishing(){return this->fishingSettings;}
 std::vector<QString> sdmixer::getFilterFiles(){return this->FilterFiles;}
 double sdmixer::getMaxIntShort(){return this->maxIntensityShort;}
@@ -321,20 +362,7 @@ void sdmixer::on_addFileButton_clicked(){
 
 void sdmixer::on_startDemixing_clicked()
 {
-   /* Reconstructor r;
-    r.run();
-    Filter f;
-    f.run();*/
-    //if(getSettingsFromUI())
-    {
-      /* getSettingsFromUI();
 
-        Settings s(this);
-        s.initXML();
-        s.writeSettingsToFile("test.conf");*/
-    }
-    Settings s(QString("test.conf"));
-    setSettingsToUI(s);
 
 }
 
@@ -357,4 +385,35 @@ void sdmixer::on_removeFilterButton_clicked()
 void sdmixer::on_removeFilesButton_clicked()
 {
     qDeleteAll(listWidgetInputFiles->selectedItems());
+}
+
+void sdmixer::on_actionSave_Settings_as_Default_triggered()
+{
+    getSettingsFromUI();
+    Settings s(this);
+    s.initXML();
+    s.writeSettingsToFile(DEFAULT_SETTINGS);
+}
+
+void sdmixer::on_actionLoad_Settings_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Settings Files (*.txt);;All Files (*.*)"));
+
+    if (!fileName.isEmpty())
+    {
+        Settings s(fileName);
+        setSettingsToUI(s);
+    }
+}
+
+void sdmixer::on_actionSave_Preferences_triggered()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Save Settings", QString(), "All Files (*.*)");
+    if(!fileName.isEmpty())
+    {
+        getSettingsFromUI();
+        Settings s(this);
+        s.initXML();
+        s.writeSettingsToFile(fileName);
+    }
 }

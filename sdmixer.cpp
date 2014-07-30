@@ -13,12 +13,12 @@
 #include <QDragEnterEvent>
 
 
-#include <fcntl.h>
+
 #include <unistd.h>
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
+
+
+
 
 sdmixer::sdmixer(QWidget *parent) :
     QMainWindow(parent),
@@ -241,111 +241,9 @@ void sdmixer::insertItem(QString filename, QListWidget *list){
     QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, list);
 }
 
-
-void sdmixer::on_actionOpen_triggered(){
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QString(),
-            tr("Localisations File (*.txt);;PairFinder Files (*.out)"));
-
-    if (!fileName.isEmpty())
-    {
-        int lines = read_file(fileName.toLatin1());
-        if ( lines != 0)
-        {
-            QMessageBox::information(this, tr("Information"), QString::number(lines));
-        }else
-        {
-            QMessageBox::critical(this, tr("Error"), tr("Could not open file"));
-        }
-    }
-
-}
-
-int sdmixer::read_file(char const *fname){
-    int lines = 0;
-    int cols = 0;
-    double dd;
-
-    static const int BUFFER_SIZE = 16*1024;
-    int fd = open(fname, O_RDONLY);
-    if(fd == -1)
-        return 0;
-    char buf[BUFFER_SIZE + 1];
-    while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
-    {
-        if(bytes_read == (size_t)-1)
-            return 0;//handle_error("read failed");
-        if (!bytes_read)
-            break;
-
-        for(char *p = buf; (p = (char*) memchr(p, '\n', (buf + bytes_read) - p)); ++p)
-           ++lines;
-    }
-
-    std::ifstream ifs(fname);
-    std::string firstLine, secondLine;
-    getline (ifs, firstLine);
-    getline (ifs, secondLine);
-    ifs.close();
-
-    std::stringstream countColsStream(secondLine);
-
-    while (countColsStream >> dd)
-    {
-        ++cols;
-    }
-
-
-    FILE *infile = fopen(fname, "r");
-    char buffer[4096];
-
-    double inputdata[lines*cols];
-
-    //gsl_matrix *K = gsl_matrix_alloc(lines,cols);
-   // double* a = new double[lines*cols];
-
-    int curr_line=0;
-
-    fseek ( infile , int(firstLine.length()), SEEK_SET );
-    int counter = 0;
-    while (fgets(buffer, sizeof(buffer), infile))
-    {
-            double d;
-            std::stringstream lineStream(buffer);
-
-            int curr_col = 0;
-            while (lineStream >> d)
-            {
-                inputdata[counter] = d;
-                //ui->textEdit->append(QString::number(d) + "  " +  QString::number(curr_line) +  "  " + QString::number(curr_col) + "\n" );
-                //gsl_matrix_set(K, curr_line, curr_col, d);
-                //a[curr_line*cols+curr_col]=d;
-                ++counter;
-                ++curr_col;
-            }
-
-            ++curr_line;
-
-    }
-
-
-    QString qs(firstLine.c_str());
-
-    /*ui->textConsole->append(QString::number(lines));
-    ui->textConsole->append(QString::number(cols));
-    ui->textConsole->append(qs);
-    ui->textConsole->append(QString::number(inputdata[9 * cols + 7]));*/
-    QString message;
-    QTextStream out(&message);
-    out << timestamp() << " : File " << fname << " loaded, " << lines << " lines <br>";
-    console->append(message);
-    return lines;
-}
-
 void sdmixer::on_actionQuit_triggered(){
     qApp->quit();
 }
-
-
 
 void sdmixer::on_addFileButton_clicked(){
     QStringList fileName = QFileDialog::getOpenFileNames(this, tr("Open File"), QString(), tr("Localisations File (*.txt);;PairFinder Files (*.out);;All Files (*.*)"));
@@ -367,7 +265,8 @@ void sdmixer::on_startDemixing_clicked()
 }
 
 
-void sdmixer::on_actionAbout_sdmixer_triggered(){
+void sdmixer::on_actionAbout_sdmixer_triggered()
+{
     QMessageBox msgBox(this);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
@@ -379,7 +278,7 @@ void sdmixer::on_actionAbout_sdmixer_triggered(){
 
 void sdmixer::on_removeFilterButton_clicked()
 {
-
+    qDeleteAll(listWidgetFilters->selectedItems());
 }
 
 void sdmixer::on_removeFilesButton_clicked()

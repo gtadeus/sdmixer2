@@ -63,8 +63,6 @@ protected:
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
 private slots:
-
-    void on_actionOpen_triggered();
     void on_actionQuit_triggered();
     void on_addFileButton_clicked();
     void on_startDemixing_clicked();

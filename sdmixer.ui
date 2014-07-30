@@ -945,10 +945,9 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionLoad_Settings"/>
     <addaction name="actionSave_Preferences"/>
     <addaction name="actionSave_Settings_as_Default"/>
-    <addaction name="actionLoad_Settings"/>
-    <addaction name="actionOpen"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -984,12 +983,12 @@
   </action>
   <action name="actionSave_Preferences">
    <property name="text">
-    <string>Save Settings</string>
+    <string>Save Settings as...</string>
    </property>
   </action>
   <action name="actionSave_Settings_as_Default">
    <property name="text">
-    <string>Save Settings as Default</string>
+    <string>Set Settings as Default</string>
    </property>
   </action>
  </widget>

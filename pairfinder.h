@@ -1,8 +1,14 @@
 #ifndef PAIRFINDER_H
 #define PAIRFINDER_H
 
-#include <gsl/gsl_matrix.h>
+#include <algorithm>
 #include <vector>
+#include <QString>
+#include <QTextStream>
+#include <fcntl.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 struct SDFile {
 
@@ -10,7 +16,7 @@ struct SDFile {
     double xShort, yShort, zShort;
     double LongIntensity, ShortIntensity;
     int frame;
-    std::vector<double> fitvalues;
+    //std::vector<double> fitvalues;
     int filter;
 
 };
@@ -20,10 +26,7 @@ class PairFinder
 public:
     PairFinder();
     void FindPairs();
-
-
-    gsl_matrix *input;
-    gsl_matrix *output;
+    int loadFile(QString path);
 
     void setDimensions(int dim) { this->dimensions = dim ; }
     void setOffset(std::vector< double > Offset)

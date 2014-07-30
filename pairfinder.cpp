@@ -7,16 +7,82 @@ void PairFinder::doWork() {
     load2();
     emit finished();
 }
+double parseFloat(const char *p)
+{
+    if (!*p || *p == '?')
+        return 0;
+    int s = 1;
+    while (*p == ' ') p++;
+
+    if (*p == '-') {
+        s = -1; p++;
+    }
+
+    double acc = 0;
+    while (*p >= '0' && *p <= '9')
+        acc = acc * 10 + *p++ - '0';
+
+    if (*p == '.') {
+        double k = 0.1;
+        p++;
+        while (*p >= '0' && *p <= '9') {
+            acc += (*p++ - '0') * k;
+            k *= 0.1;
+        }
+    }
+    //if (*p) die("Invalid numeric format");
+    return s * acc;
+}
 void PairFinder::load2(){
-    std::ifstream infile;
+  /*  std::ifstream infile;
     infile.open(_file.toStdString(), std::ifstream::in);
     std::string line;
     int counter=0;
 
     std::string firstLine;
-    getline (infile, firstLine);
+    getline (infile, firstLine);*/
+  /*  FILE * pFile;
+      int c;
+      int n = 0;
+      pFile=fopen (_file.toStdString().c_str(),"r");
+      if (pFile==NULL)
+      {}
+      else
+      {
+          while (c != EOF)
+          {
+            c = getc (pFile);
+            n++;
+            //input.push_back(c);
+          }
+          fclose (pFile);
+          qDebug()<< "File contains " << n;
+      }*/
    // is.read()
+   /* double d;
+    while(infile >> d)
+    {
+        //input.push_back(d);
+        ++counter;
+    }
+    */
+    QFile file(_file);
+    file.open(QIODevice::ReadOnly);
+    QDataStream in(&file);
 
+    std::vector<double> raw_data;
+   // ints.reserve(25968760);
+
+    while (!in.atEnd()) {
+        double d;
+        in >> d ;
+        raw_data.push_back(d); // append the integer to the vector
+    }
+
+    qDebug() << raw_data.size() ;
+//    std::vector<double> numbers;
+
+  //  std::copy(std::istream_iterator<double>(infile),std::istream_iterator<double>(), std::back_inserter(numbers));
 /*
     while (std::getline(infile, line))
     {
@@ -31,7 +97,7 @@ void PairFinder::load2(){
         ++counter;
     }*/
 
-    qDebug() << counter;
+    //qDebug() << counter;
 }
 
 PairFinder::PairFinder(sdmixer *s, QString file)

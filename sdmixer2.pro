@@ -14,6 +14,14 @@ TEMPLATE = app
 CONFIG += c++11
 win32:RC_FILE = run.rc
 
+QMAKE_CFLAGS  -= -O2
+QMAKE_CFLAGS  -= -O1
+QMAKE_CXXFLAGS  -= -O2
+QMAKE_CXXFLAGS  -= -O1
+QMAKE_CFLAGS  =  -O3
+QMAKE_LFLAGS  =  -O3
+QMAKE_CXXFLAGS  = -O3
+
 
 SOURCES += main.cpp\
         sdmixer.cpp \

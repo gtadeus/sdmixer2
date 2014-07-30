@@ -57,7 +57,7 @@ void Filter::loadFilterImage(QString path)
 
 void Filter::initializeIntensities()
 {
-    std::vector<SDFile> PFOutput;
+    std::vector<PairFinder::Localization> PFOutput;
 
     for (auto &i : PFOutput )
     {

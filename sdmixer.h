@@ -79,6 +79,7 @@ private slots:
     void on_actionSave_Preferences_triggered();
 
 private:
+
     std::vector<QString> InputFiles;
     bool runPairFinder=false;
     bool runFilter=false;

@@ -1,4 +1,5 @@
 #include "sdmixer.h"
+#include "pairfinder.h"
 #include "reconstructor.h"
 #include "filter.h"
 #include "ui_sdmixer.h"
@@ -11,6 +12,8 @@
 #include <QInputDialog>
 #include <QMimeData>
 #include <QDragEnterEvent>
+
+#include <QThread>
 
 
 
@@ -93,12 +96,6 @@ bool sdmixer::getSettingsFromUI()
     {
         QListWidgetItem* item = ui->listWidget_InputFiles->item(i);
         InputFiles.push_back(item->text());
-    }
-    if(InputFiles.empty())
-    {
-        //QString err = error_msg("no input files selected");
-        //writeToConsole(err);
-        //return false;
     }
 
     runPairFinder = ui->checkBox_runPairFinder->isChecked();
@@ -260,10 +257,31 @@ void sdmixer::on_addFileButton_clicked(){
 
 void sdmixer::on_startDemixing_clicked()
 {
+    getSettingsFromUI();
+
+    if(InputFiles.empty())
+    {
+        QString err = error_msg("no input files selected");
+        writeToConsole(err);
+        return;
+    }
+   // for (auto &i : InputFiles)
+    {
+        QThread* thread = new QThread;
+        PairFinder* p = new PairFinder(this, InputFiles[0]);
+
+        p->moveToThread(thread);
+        connect(thread, SIGNAL(started()), p, SLOT(doWork()));
+        connect(p, SIGNAL(finished()), thread, SLOT(quit()));
+        connect(p, SIGNAL(finished()), p, SLOT(deleteLater()));
+        connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+        thread->start();
 
 
+
+        qDebug() << p->getDimensions();
+    }
 }
-
 
 void sdmixer::on_actionAbout_sdmixer_triggered()
 {

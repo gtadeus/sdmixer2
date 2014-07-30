@@ -1,42 +1,134 @@
 #include "pairfinder.h"
 
+void PairFinder::doWork() {
+    // allocate resources using new here
+    qDebug()<<"started";
+    //loadFile(_file);
+    load2();
+    emit finished();
+}
+void PairFinder::load2(){
+    std::ifstream infile;
+    infile.open(_file.toStdString(), std::ifstream::in);
+    std::string line;
+    int counter=0;
 
-PairFinder::PairFinder()
-{
-    //set dim
-    //set Offset
-    //set stoprow
-    //set rows & cols
+    std::string firstLine;
+    getline (infile, firstLine);
+   // is.read()
+
+/*
+    while (std::getline(infile, line))
+    {
+        double d;
+        std::istringstream lineStream(line);
+
+        while (lineStream >> d)
+        {
+            input.push_back(d);
+        }
+
+        ++counter;
+    }*/
+
+    qDebug() << counter;
 }
 
-void PairFinder::FindPairs()
-{/*
+PairFinder::PairFinder(sdmixer *s, QString file)
+{
+    getHeader(file);
+    //qDebug() << "dimensions: " << dimensions;
+
+    if(s->getForce2D())
+        dimensions=2;
+
+    for(int i=0; i< dimensions; ++i)
+    {
+        Offset[i]=s->getOffset(i);
+        Epsilon[i]=s->getEpsilon(i);
+    }
+    s->writeToConsole("loading file...");
+    _file=file;
+    //loadFile(file);
+    //s->writeToConsole("searching Pairs");
+
+    /*FindPairs();
+
+    QString str; str = "pairs found ";
+    str.append(QString::number(numpairs));
+
+    s->writeToConsole(str);*/
+
+}
+void PairFinder::getHeader(QString file)
+{
+    std::ifstream ifs(file.toLatin1());
+    std::string firstLine;
+    getline (ifs, firstLine);
+
+    ifs.close();
+
+    header = removeCharacters(QString::fromStdString(firstLine), "#");
+
+    QDomDocument qd;
+
+    qd.setContent(header);
+    QDomElement element = qd.documentElement();
+    for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
+    {
+        QDomElement e = n.toElement();
+        if( e.tagName() == "field" )
+        {
+            if( e.attribute("identifier").contains("Position"))
+            {
+                ++dimensions;
+
+                if(e.attribute("identifier").contains("1"))
+                {
+                    min_y = removeCharacters(e.attribute("min")," m").toDouble();
+                    max_y = removeCharacters(e.attribute("max")," m").toDouble();
+                }
+                else if(e.attribute("identifier").contains("2"))
+                {
+                    min_z = removeCharacters(e.attribute("min")," m").toDouble();
+                    max_z = removeCharacters(e.attribute("max")," m").toDouble();
+                }
+                else
+                {
+                    min_z = removeCharacters(e.attribute("min")," m").toDouble();
+                    max_z = removeCharacters(e.attribute("max")," m").toDouble();
+                }
+            }
+        }
+    }
+    /*qDebug() << min_x << "  " << max_x;
+    qDebug() << min_y << "  " << max_y;
+    qDebug() << min_z << "  " << max_z;*/
+}
+
+void PairFinder::FindPairs(int last_frame)
+{
         int curr_row=0;
-
-        int last_frame = -1;
         int increment = 1;
+        int endrow = 0;
 
-        int endrow = rawDataRows;
-
-        std::vector< std::vector<double> > vecPairsOut;
-        std::vector<int> grouped_rows;
+        if (last_frame != -1)
+            endrow = rawDataRows;
+        else
+            endrow = last_frame;
 
         while (curr_row < endrow)
         {
             double EllipsoidSumR=0;
             double EllipsoidSumL=0;
-            if (last_frame != gsl_matrix_get(input, curr_row, FrameColumnC))
-            {
-                last_frame = gsl_matrix_get(input, curr_row, FrameColumnC);
-                NrOfDifferentFrames++;
-            }
+            Localization loc;
 
-            if( gsl_matrix_get(input, curr_row, FrameColumnC) == gsl_matrix_get(input, curr_row + increment, FrameColumnC) )
+            if( input[curr_row*rawDataCols+FrameColumn] == input[(curr_row+increment)*rawDataCols+FrameColumn] )
             {
                 for (int d = 0; d < dimensions; ++d)
                 {
-                    double tempL = ((gsl_matrix_get(input, curr_row, d) - Offset[d]) - gsl_matrix_get(input, curr_row+increment, d));
-                    double tempR = ((gsl_matrix_get(input, curr_row+increment, d) - Offset[d]) - gsl_matrix_get(input, curr_row, d));
+                    double tempL = ((input[curr_row*rawDataCols + d] - Offset[d]) - input[(curr_row+increment)*rawDataCols+d]);
+                    double tempR = (input[(curr_row+increment)*rawDataCols+d] - Offset[d]) - input[curr_row*rawDataCols + d];
                     tempL*=tempL;
                     tempR*=tempR;
                     tempL/=(Epsilon[d]*Epsilon[d]);
@@ -44,79 +136,73 @@ void PairFinder::FindPairs()
                     EllipsoidSumL += tempL;
                     EllipsoidSumR += tempR;
                 }
-                if (EllipsoidSumL <= 1)
+                if (EllipsoidSumL <= 1 || EllipsoidSumR <= 1)
                 {
-                    std::vector<double> temp;
+                    int compare_col;
+                    if(LeftRight)
+                        compare_col = xCol;
+                    else
+                        compare_col = yCol;
 
-                    for(int i = 0; i < rawDataCols; ++i)
-                        temp.push_back(gsl_matrix_get(input, curr_row, i));
+                    bool factorShort;
+                    if(ShortChannel == 1)
+                    {
+                        if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                            factorShort = false;
+                        else
+                            factorShort = true;
+                    }
+                    else
+                    {
+                        if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                            factorShort = true;
+                        else
+                            factorShort = false;
+                    }
+                    loc.xShort=input[(curr_row+factorShort*increment)*rawDataCols+xCol];
+                    loc.yShort=input[(curr_row+factorShort*increment)*rawDataCols+yCol];
+                    if(dimensions>2)
+                        loc.zShort=input[(curr_row+factorShort*increment)*rawDataCols+zCol];
+                    loc.ShortIntensity=input[(curr_row+factorShort*increment)*rawDataCols+FrameColumn];
+                    loc.xLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+xCol];
+                    loc.yLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+yCol];
+                    if(dimensions>2)
+                        loc.zLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+zCol];
+                    loc.LongIntensity=input[(curr_row+(!factorShort)*increment)*rawDataCols+FrameColumn];
 
-                    for(int i = 0; i < rawDataCols; ++i)
-                        temp.push_back(gsl_matrix_get(input, curr_row+increment, i));
-
-                    vecPairsOut.push_back(temp);
-
-                    numpairs++;
-
+                    output_file.push_back(loc);
                     grouped_rows.push_back(curr_row);
                     grouped_rows.push_back(curr_row+increment);
+
                 }
-                else if (EllipsoidSumR <= 1)
-                {
-                    std::vector<double> temp;
-
-                    for(int i = 0; i < rawDataCols; ++i)
-                        temp.push_back(gsl_matrix_get(input, curr_row+increment, i));
-
-                    for(int i = 0; i < rawDataCols; ++i)
-                        temp.push_back(gsl_matrix_get(input, curr_row, i));
-
-                    vecPairsOut.push_back(temp);
-                    numpairs++;
-
-                    grouped_rows.push_back(curr_row);
-                    grouped_rows.push_back(curr_row+increment);
-                }
-
                 if (increment != rawDataRows)
                     increment++;
-
-                 //EllipsoidSumR=0;
             }
             else
             {
                 curr_row++;
                 increment = 1;
-                //EllipsoidSumR=0;
             }
         }
 
     std::sort ( grouped_rows.begin(), grouped_rows.end() );
     multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
-
-    if ( create_output )
-    {
-    output = gsl_matrix_alloc(numpairs, rawDataCols*2);
-
-    for(int i = 0; i < vecPairsOut.size(); ++i)
-         for(int j=0; j< vecPairsOut[i].size(); ++j)
-                gsl_matrix_set(output, i, j, vecPairsOut[i][j]);
-
-    }*/
-
 }
 
 int PairFinder::loadFile(QString path)
 {
+    // This is the fastest way to count lines in file
+    // from the UNIX tool wget
+    qDebug()<<path;
     const char *fname = path.toStdString().c_str();
-    int lines = 0;
-    int cols = 0;
     double dd;
 
     static const int BUFFER_SIZE = 16*1024;
     int fd = open(fname, O_RDONLY);
+
     if(fd == -1)
         return 0;
+
     char buf[BUFFER_SIZE + 1];
     while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
     {
@@ -126,66 +212,41 @@ int PairFinder::loadFile(QString path)
             break;
 
         for(char *p = buf; (p = (char*) memchr(p, '\n', (buf + bytes_read) - p)); ++p)
-           ++lines;
+           ++rawDataRows;
     }
-
+    // Lines counted
     std::ifstream ifs(fname);
     std::string firstLine, secondLine;
     getline (ifs, firstLine);
     getline (ifs, secondLine);
-    ifs.close();
 
+    ifs.close();
+    //determine column number from second line
     std::stringstream countColsStream(secondLine);
 
     while (countColsStream >> dd)
     {
-        ++cols;
+        ++rawDataCols;
     }
-
+    // open file again...
 
     FILE *infile = fopen(fname, "r");
     char buffer[4096];
+    input.reserve(rawDataRows*rawDataCols);
 
-    double inputdata[lines*cols];
-
-    //gsl_matrix *K = gsl_matrix_alloc(lines,cols);
-   // double* a = new double[lines*cols];
-
-    int curr_line=0;
-
+    //skip first Line
     fseek ( infile , int(firstLine.length()), SEEK_SET );
-    int counter = 0;
+
     while (fgets(buffer, sizeof(buffer), infile))
     {
             double d;
             std::stringstream lineStream(buffer);
 
-            int curr_col = 0;
             while (lineStream >> d)
-            {
-                inputdata[counter] = d;
-                //ui->textEdit->append(QString::number(d) + "  " +  QString::number(curr_line) +  "  " + QString::number(curr_col) + "\n" );
-                //gsl_matrix_set(K, curr_line, curr_col, d);
-                //a[curr_line*cols+curr_col]=d;
-                ++counter;
-                ++curr_col;
-            }
-
-            ++curr_line;
-
+                input.push_back(d);
     }
+    qDebug() << input[rawDataRows*rawDataCols];
+    return 1;
 
-
-    QString qs(firstLine.c_str());
-
-    /*ui->textConsole->append(QString::number(lines));
-    ui->textConsole->append(QString::number(cols));
-    ui->textConsole->append(qs);
-    ui->textConsole->append(QString::number(inputdata[9 * cols + 7]));*/
-    //QString message;
-    //QTextStream out(&message);
-    //out << timestamp() << " : File " << fname << " loaded, " << lines << " lines <br>";
-    //console->append(message);
-    return lines;
 }
 

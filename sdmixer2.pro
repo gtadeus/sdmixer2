@@ -24,39 +24,31 @@ QMAKE_CXXFLAGS  = -O3
 
 
 SOURCES += main.cpp\
-        sdmixer.cpp \
+sdmixer.cpp \
     pairfinder.cpp \
     filter.cpp \
     reconstructor.cpp \
-    settings.cpp
+    settings.cpp \
+
+
 
 HEADERS  += sdmixer.h \
     pairfinder.h \
     filter.h \
     reconstructor.h \
-    settings.h
+    settings.h \
+
 
 FORMS    += sdmixer.ui
 
-LIBS += -lm -llibtiff
-#LIBS += -lgsl -lgslcblas -lm
+LIBS += -llibtiff
 
-#windows 8
-win32:DEPENDPATH += C:\Progra~2\GnuWin32\
-win32:DEPENDPATH += C:\Progra~2\GnuWin32\lib
-win32:INCLUDEPATH += C:\Progra~2\GnuWin32\include
 
-#windows 7
-win32:DEPENDPATH += C:\Progra~1\GnuWin32\
-win32:DEPENDPATH += C:\Progra~1\GnuWin32\lib
-win32:INCLUDEPATH += C:\Progra~1\GnuWin32\include
+win32:INCLUDEPATH += C:\Build\include
 
-win32:LIBS += -LC:\Progra~2\GnuWin32\lib
-win32:LIBS += -LC:\Progra~2\GnuWin32\bin
-win32:LIBS += -LC:\Progra~1\GnuWin32\lib
-win32:LIBS += -LC:\Progra~1\GnuWin32\bin
-win32:LIBS += -llibgsl
-win32:LIBS += -llibgslcblas
+win32:LIBS += -LC:\Build\libs
+
+
 
  if(!debug_and_release|build_pass):CONFIG(debug, debug|release) {
     #mac:LIBS = $$member(LIBS, 0) $$member(LIBS, 1)_debug

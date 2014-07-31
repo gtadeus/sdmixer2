@@ -1,7 +1,6 @@
 #ifndef RECONSTRUCTOR_H
 #define RECONSTRUCTOR_H
 
-#include <gsl/gsl_matrix.h>
 #include <QString>
 #include <tiffio.h>
 
@@ -27,11 +26,7 @@ private:
 
     double *kernel;
     int kernel_dim;
-    gsl_matrix *image;
 
-    gsl_vector *x;
-    gsl_vector *y;
-    gsl_vector *z;
 
     const static int XSIZE = 20;
     const static int YSIZE = 20;

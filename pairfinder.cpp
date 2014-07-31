@@ -3,118 +3,117 @@
 void PairFinder::doWork() {
     // allocate resources using new here
     qDebug()<<"started";
-    //loadFile(_file);
-    load2();
+
+    loadInputFile();
     emit finished();
 }
-double parseFloat(const char *p)
+void PairFinder::Tokenize(const std::string& str,
+                      std::vector<std::string>& tokens,
+                      const std::string delimiters)
 {
-    if (!*p || *p == '?')
-        return 0;
-    int s = 1;
-    while (*p == ' ') p++;
+    // Skip delimiters at beginning.
+    std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+    // Find first "non-delimiter".
+    std::string::size_type pos     = str.find_first_of(delimiters, lastPos);
 
-    if (*p == '-') {
-        s = -1; p++;
+    while (std::string::npos != pos || std::string::npos != lastPos)
+    {
+        // Found a token, add it to the vector.
+        tokens.push_back(str.substr(lastPos, pos - lastPos));
+        // Skip delimiters.  Note the "not_of"
+        lastPos = str.find_first_not_of(delimiters, pos);
+        // Find next "non-delimiter"
+        pos = str.find_first_of(delimiters, lastPos);
     }
-
-    double acc = 0;
-    while (*p >= '0' && *p <= '9')
-        acc = acc * 10 + *p++ - '0';
-
-    if (*p == '.') {
-        double k = 0.1;
-        p++;
-        while (*p >= '0' && *p <= '9') {
-            acc += (*p++ - '0') * k;
-            k *= 0.1;
-        }
-    }
-    //if (*p) die("Invalid numeric format");
-    return s * acc;
 }
-void PairFinder::load2(){
-  /*  std::ifstream infile;
-    infile.open(_file.toStdString(), std::ifstream::in);
-    std::string line;
-    int counter=0;
+namespace client
+{
+    namespace qi = boost::spirit::qi;
+    namespace ascii = boost::spirit::ascii;
+    namespace phoenix = boost::phoenix;
 
-    std::string firstLine;
-    getline (infile, firstLine);*/
-  /*  FILE * pFile;
-      int c;
-      int n = 0;
-      pFile=fopen (_file.toStdString().c_str(),"r");
-      if (pFile==NULL)
-      {}
-      else
-      {
-          while (c != EOF)
-          {
-            c = getc (pFile);
-            n++;
-            //input.push_back(c);
-          }
-          fclose (pFile);
-          qDebug()<< "File contains " << n;
-      }*/
-   // is.read()
-   /* double d;
-    while(infile >> d)
+    ///////////////////////////////////////////////////////////////////////////
+    //  Our number list compiler
+    ///////////////////////////////////////////////////////////////////////////
+    //[tutorial_numlist2
+    template <typename Iterator>
+    bool parse_numbers(Iterator first, Iterator last, std::vector<double>& v)
     {
-        //input.push_back(d);
-        ++counter;
+        using qi::double_;
+        using qi::phrase_parse;
+        using qi::_1;
+        using ascii::space;
+        using phoenix::push_back;
+
+        bool r = phrase_parse(first, last,
+
+            //  Begin grammar
+                              (
+                                  double_ % ','
+                              )
+            ,
+            //  End grammar
+
+            qi::blank, v);
+
+        if (first != last) // fail if we did not get a full match
+            return false;
+        return r;
     }
-    */
-    QFile file(_file);
-    file.open(QIODevice::ReadOnly);
-    QDataStream in(&file);
+    //]
+}
 
-    std::vector<double> raw_data;
-   // ints.reserve(25968760);
+void PairFinder::loadInputFile()
+{
 
-    while (!in.atEnd()) {
-        double d;
-        in >> d ;
-        raw_data.push_back(d); // append the integer to the vector
-    }
+    QFile f(file);
+    f.open(QIODevice::ReadOnly| QIODevice::Text);
 
-    qDebug() << raw_data.size() ;
-//    std::vector<double> numbers;
+    QTextStream in(&f);
+    QString line = in.readLine();
 
-  //  std::copy(std::istream_iterator<double>(infile),std::istream_iterator<double>(), std::back_inserter(numbers));
-/*
-    while (std::getline(infile, line))
+    while (!in.atEnd())
     {
-        double d;
-        std::istringstream lineStream(line);
 
-        while (lineStream >> d)
+        line = in.readLine();
+
+        std::vector<std::string> v;
+        std::string str = line.toStdString();
+        boost::split(v, str, boost::is_any_of("\t "));
+
+        for (auto i : v)
         {
-            input.push_back(d);
+            input.push_back(strtod(i.c_str(), NULL));
         }
 
-        ++counter;
-    }*/
 
-    //qDebug() << counter;
+    }
+
+    qDebug() << "total: " << input.size() ;
+    rawDataRows=input.size()/rawDataCols;
+    qDebug() <<  "rows : " << rawDataRows ;
+    qDebug() <<  input[0] <<"  " << input[input.size()-1] ;
+
 }
 
-PairFinder::PairFinder(sdmixer *s, QString file)
+PairFinder::PairFinder(sdmixer *s, QString f)
 {
-    getHeader(file);
-    //qDebug() << "dimensions: " << dimensions;
+    sdm = s;
+    file = f;
+    getHeader();
+    qDebug() << "dimensions: " << dimensions;
+    qDebug() << "columns: " << rawDataCols;
 
     if(s->getForce2D())
         dimensions=2;
 
     for(int i=0; i< dimensions; ++i)
     {
-        Offset[i]=s->getOffset(i);
-        Epsilon[i]=s->getEpsilon(i);
+        Offset[i]=sdm->getOffset(i);
+        Epsilon[i]=sdm->getEpsilon(i);
     }
-    s->writeToConsole("loading file...");
-    _file=file;
+    sdm->writeToConsole("loading file...");
+
     //loadFile(file);
     //s->writeToConsole("searching Pairs");
 
@@ -126,7 +125,7 @@ PairFinder::PairFinder(sdmixer *s, QString file)
     s->writeToConsole(str);*/
 
 }
-void PairFinder::getHeader(QString file)
+void PairFinder::getHeader()
 {
     std::ifstream ifs(file.toLatin1());
     std::string firstLine;
@@ -145,6 +144,7 @@ void PairFinder::getHeader(QString file)
         QDomElement e = n.toElement();
         if( e.tagName() == "field" )
         {
+            ++rawDataCols;
             if( e.attribute("identifier").contains("Position"))
             {
                 ++dimensions;
@@ -255,64 +255,4 @@ void PairFinder::FindPairs(int last_frame)
     multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
 }
 
-int PairFinder::loadFile(QString path)
-{
-    // This is the fastest way to count lines in file
-    // from the UNIX tool wget
-    qDebug()<<path;
-    const char *fname = path.toStdString().c_str();
-    double dd;
-
-    static const int BUFFER_SIZE = 16*1024;
-    int fd = open(fname, O_RDONLY);
-
-    if(fd == -1)
-        return 0;
-
-    char buf[BUFFER_SIZE + 1];
-    while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
-    {
-        if(bytes_read == (size_t)-1)
-            return 0;//handle_error("read failed");
-        if (!bytes_read)
-            break;
-
-        for(char *p = buf; (p = (char*) memchr(p, '\n', (buf + bytes_read) - p)); ++p)
-           ++rawDataRows;
-    }
-    // Lines counted
-    std::ifstream ifs(fname);
-    std::string firstLine, secondLine;
-    getline (ifs, firstLine);
-    getline (ifs, secondLine);
-
-    ifs.close();
-    //determine column number from second line
-    std::stringstream countColsStream(secondLine);
-
-    while (countColsStream >> dd)
-    {
-        ++rawDataCols;
-    }
-    // open file again...
-
-    FILE *infile = fopen(fname, "r");
-    char buffer[4096];
-    input.reserve(rawDataRows*rawDataCols);
-
-    //skip first Line
-    fseek ( infile , int(firstLine.length()), SEEK_SET );
-
-    while (fgets(buffer, sizeof(buffer), infile))
-    {
-            double d;
-            std::stringstream lineStream(buffer);
-
-            while (lineStream >> d)
-                input.push_back(d);
-    }
-    qDebug() << input[rawDataRows*rawDataCols];
-    return 1;
-
-}
 

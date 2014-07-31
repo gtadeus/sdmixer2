@@ -1,7 +1,6 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include <gsl/gsl_matrix.h>
 #include <QApplication>
 #include <QImage>
 #include <QColor>
@@ -18,8 +17,7 @@ public:
     void roundIntensityValues();
     void drawIntensitySpace();
 
-    gsl_matrix *input;
-    gsl_matrix *output;
+
 
     int getMaxIntLong() { return maxIntLong; }
     void setMaxIntLong(int val) { this->maxIntLong=val; }

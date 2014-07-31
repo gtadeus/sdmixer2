@@ -14,6 +14,17 @@
 
 #include <QThread>
 #include <QEventLoop>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/tokenizer.hpp>
+#include <boost/config/warning_disable.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix_core.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_stl.hpp>
+
 #include "sdmixer.h"
 
 
@@ -33,9 +44,9 @@ public:
 
     };
 
-    PairFinder(sdmixer *s, QString file);
-    void getHeader(QString file);
-
+    PairFinder(sdmixer *s, QString f);
+    void getHeader();
+void Tokenize(const std::string& str, std::vector<std::string>& tokens, const std::string delimiters);
     QString removeCharacters(QString input, char chars[])
     {
         std::string str = input.toStdString();
@@ -47,7 +58,7 @@ public:
     }
 
     void FindPairs(int last_frame=-1);
-    int loadFile(QString path);
+    int loadFile();
 
     int getDimensions() {return dimensions;}
 
@@ -55,8 +66,8 @@ public:
     int getMultipleCounter() { return multiple_counter; }
 
 
-    std::vector<double> input;
-    void load2();
+
+    void loadInputFile();
 
 signals:
     void finished();
@@ -65,7 +76,10 @@ public slots:
     void doWork();
 
 private:
-    QString _file;
+    sdmixer *sdm;
+    QString file;
+    std::vector<double> input;
+
     bool _working=false;
     bool _abort=false;
     QMutex mutex;

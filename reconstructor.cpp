@@ -1,46 +1,183 @@
 #include "reconstructor.h"
-#include "pairfinder.h"
-unsigned char Reconstructor::array[XSIZE*YSIZE] = {0};
 
-void Reconstructor::XYZfromFilter(std::vector<PairFinder::Localization> &data)
+
+void Reconstructor::setArray()
+{
+    qDebug() << "start set array";
+
+    for(int i = 0; i < dimensions; ++i)
+    {
+        maxPixels*=image_max[i];
+    }
+
+    boost::iostreams::mapped_file file;
+    boost::iostreams::mapped_file_params params;
+    remove(tmpfile) ;
+    params.path = "tmp.file";
+
+    params.mode = (std::ios::out | std::ios::in);
+    params.new_file_size =  maxPixels*sizeof(uint8)+1;
+
+    file.open(params);
+
+    uint8 * array =static_cast<uint8*>((void*)file.data());
+
+    //data[0] = 12;
+    //array = new uint8[maxPixels];
+    if (file.is_open())
+    {
+    qDebug() << "initializing... map_pixel = " << maxPixels;
+       for ( int i = 0; i < maxPixels; ++i)
+       {
+           array[i]=0;
+       }
+
+
+       //qDebug() << array[maxPixels];
+       qDebug() << "populating...";
+        uint64_t temp_max =0;
+       for(std::vector<int>::size_type i = 0; i != xyz.size(); i++)
+       {
+           //qDebug() << linearIndex(xyz[i]) << " : " << xyz[i].x << " " << xyz[i].y << " " << xyz[i].z;
+           uint64_t lin_index = linearIndex(xyz[i]);
+           if (i == 0)
+               temp_max = lin_index;
+           else
+               if(lin_index > temp_max)
+                   temp_max = lin_index;
+            array[lin_index]+=1;
+       }
+       qDebug() << temp_max;
+        qDebug() << "ready!";
+
+       /*for( auto i : xyz)
+       {
+           //qDebug() << linearIndex(i) << " : " << i.x << " " << i.y << " " << i.z;
+           array+=linearIndex(i);
+           *array = 1;
+           array=start;
+       }*/
+    }
+    file.close();
+
+   /* array = new uint8[maxPixels];
+    qDebug() << "initializing... map_pixel = " << maxPixels;
+    for ( int i = 0; i < maxPixels; ++i)
+    {
+        array[i]=0;
+    }
+    qDebug() << "populating...";
+    for( auto i : xyz)
+    {
+        //qDebug() << linearIndex(i) << " : " << i.x << " " << i.y << " " << i.z;
+        array[linearIndex(i)] += 1;
+    }
+
+    qDebug() << "finish array";
+*/
+    //delete[] array;
+}
+
+void Reconstructor::getMinMax()
+{
+    int counter = 0;
+    for ( auto coord : xyz)
+    {
+        for (int i = 0; i < dimensions; ++i)
+        {
+            if(counter == 0)
+            {
+                image_min[i] = coord.get(i);
+                image_max[i] = coord.get(i);
+            }
+            if (coord.get(i) > image_max[i])
+                image_max[i] = coord.get(i);
+            if (coord.get(i) < image_min[i])
+                image_min[i] = coord.get(i);
+        }
+        ++counter;
+    }
+    for (int i = 0; i < dimensions; ++i)
+    {
+        qDebug() << image_max[i];
+    }
+}
+
+uint64_t Reconstructor::linearIndex(Coordinates c)
+{
+    int index = 0;
+    return c.get(0) + image_max[0]*c.get(1) + image_max[2]*image_max[0]*c.get(2);
+    //return image_max[0]*image_max[1]*c.get(0)+image_max[1]*c.get(1)+c.get(2);
+    for ( int i = 0; i < dimensions; ++i)
+    {
+        int prod=1;
+        for(int j = (i+1); j < dimensions; ++j)
+        {
+            prod *= (image_max[j]-1);
+        }
+        index += (c.get(i) * prod);
+    }
+
+    return index;
+}
+
+
+
+void Reconstructor::setMinMax(double min_x, double max_x,
+                              double min_y, double max_y,
+                                double min_z, double max_z)
+{
+    // min max, convert from m to nm
+
+    min_val[0]=min_x * 1e9;
+    max_val[0]=max_x * 1e9;
+
+    min_val[1]=min_y * 1e9;
+    max_val[1]=max_y * 1e9;
+
+    min_val[2]=min_z * 1e9;
+    max_val[2]=max_z * 1e9;
+}
+
+void Reconstructor::XYZfromFilter(std::vector<PairFinder::Localization>& data)
 {
     for (auto i : data)
     {
-        Coordinates c;
-        if ( i.xShort > min_x)
-            if ( i.xShort < max_x)
-                if ( i.yShort > min_y)
-                    if (i.yShort < max_y)
-                        if( i.zShort > min_z)
-                            if ( i.zShort < max_z)
-                            {
-                                c.x = round(i.xShort/xy_binning);
-                                c.y = round(i.yShort/xy_binning);
-                                c.z = round(i.zShort/z_binning);
-                            }
-        xyz.push_back(c);
 
-        if ( i.xLong > min_x)
-            if ( i.xLong < max_x)
-                if ( i.yLong > min_y)
-                    if (i.yLong < max_y)
-                        if( i.zShort > min_z)
-                            if ( i.zShort < max_z)
-                            {
-                                c.x = round(i.xShort/xy_binning);
-                                c.y = round(i.yShort/xy_binning);
-                                c.z = round(i.zShort/z_binning);
-                            }
+            bool ShortOK = false;
+            bool LongOK = false;
+            for ( int d = 0; d < dimensions; ++d)
+            {
+                if ( i.getShortDim(d) >= min_val[d])
+                    if(i.getShortDim(d) <= max_val[d] && max_val[d] != 0)
+                        ShortOK=true;
+                if ( i.getLongDim(d) >= min_val[d])
+                    if( i.getLongDim(d) <= max_val[d] && max_val[d] != 0)
+                        LongOK=true;
 
-        xyz.push_back(c);
+
+            }
+            if (ShortOK && LongOK)
+            {
+                Coordinates c;
+                c.x = round(i.xShort/xy_binning);
+                c.y = round(i.yShort/xy_binning);
+                c.z = round(i.zShort/z_binning);
+                xyz.push_back(c);
+                c.x = round(i.xLong/xy_binning);
+                c.y = round(i.yLong/xy_binning);
+                c.z = round(i.zLong/z_binning);
+                xyz.push_back(c);
+            }
     }
+    qDebug() << "ready " << xyz[0].x << "  " << xyz[0].y<< "  "  << xyz[0].z;
 }
 
 void Reconstructor::getIndexFromXYZ()
 {
     // N1xN2xN3 Array
-    Nl[3]={round(max_x), round(max_y), round(max_z)};
-    index = 0;
+    int Nl[3]={round(max_x), round(max_y), round(max_z)};
+    int index = 0;
     std::vector<int> image;
     for ( auto i : xyz)
     {
@@ -63,8 +200,9 @@ void Reconstructor::getIndexFromXYZ()
     }
 }
 
-Reconstructor::Reconstructor()
+Reconstructor::Reconstructor(sdmixer *s)
 {
+    this->sdm = s;
     //load filter output
     //convert xyz coordinates to
     //round vectors to full nm
@@ -116,9 +254,11 @@ void Reconstructor::outputTIFF( QString path)
 {
     //for ( int i = 0; i < max_z; ++i)
 
+
     uint16 spp, bpp, photo, res_unit;
 
-    out = TIFFOpen(path.toLocal8Bit(), "w");
+    out = TIFFOpen(path.toLocal8Bit(), "w8");
+
     if (!out)
     {
         return;
@@ -129,9 +269,23 @@ void Reconstructor::outputTIFF( QString path)
     //3 == rgb, 4 == alpha channel
     bpp = 8; /* Bits per sample */
     photo = PHOTOMETRIC_MINISBLACK;
+    int image_width = image_max[0];
+    int image_height = image_max[1];
+    int image_z = image_max[2];
 
-    for (page = 0; page < NPAGES; page++)
+    boost::iostreams::mapped_file_sink file;
+    boost::iostreams::mapped_file_params params;
+    params.path = "tmp.file";
+    //params.mode = std::ios::in;
+    file.open(params);
+
+    uint8 *array =static_cast<uint8*>((void*)file.data());
+
+    if (file.is_open())
+    for (int page = 0; page < image_z; page++)
     {
+        if(page%10 == 0)
+            qDebug() << "writing page: " << page;
         TIFFSetField(out, TIFFTAG_IMAGEWIDTH, image_width / spp);
         TIFFSetField(out, TIFFTAG_IMAGELENGTH, image_height);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bpp);
@@ -140,8 +294,8 @@ void Reconstructor::outputTIFF( QString path)
         TIFFSetField(out, TIFFTAG_PHOTOMETRIC, photo);
         TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
         /* It is good to set resolutions too (but it is not nesessary) */
-        xres = yres = 100;
-        res_unit = RESUNIT_INCH;
+        xres = yres = 100;//sdm->getPixelSize()*1e-7;
+        res_unit = RESUNIT_CENTIMETER;
         TIFFSetField(out, TIFFTAG_XRESOLUTION, xres);
         TIFFSetField(out, TIFFTAG_YRESOLUTION, yres);
         TIFFSetField(out, TIFFTAG_RESOLUTIONUNIT, res_unit);
@@ -150,14 +304,16 @@ void Reconstructor::outputTIFF( QString path)
         TIFFSetField(out, TIFFTAG_SUBFILETYPE, FILETYPE_PAGE);
 
         /* Set the page number */
-        TIFFSetField(out, TIFFTAG_PAGENUMBER, page, NPAGES);
+        TIFFSetField(out, TIFFTAG_PAGENUMBER, page, image_z);
 
-        for (j = 0; j < image_height; j++)
+        for (int j = 0; j < image_height; j++)
             TIFFWriteScanline(out, &array[j * image_width], j, 0);
 
         TIFFWriteDirectory(out);
     }
-
+    file.close();
      TIFFClose(out);
+
+     qDebug()<<"TIFF out ready!!";
 
 }

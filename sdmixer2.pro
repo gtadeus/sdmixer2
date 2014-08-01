@@ -29,6 +29,7 @@ sdmixer.cpp \
     filter.cpp \
     reconstructor.cpp \
     settings.cpp \
+    mapped_file.cpp
 
 
 

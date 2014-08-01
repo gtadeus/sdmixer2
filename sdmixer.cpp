@@ -198,6 +198,11 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_zBinning->setText(QString::number(s.getZbinning()));
 }
 
+void sdmixer::setStartDemixingButtonEnabled(bool val)
+{
+    ui->startDemixing->setEnabled(val);
+}
+
 
 std::vector<QString> sdmixer::getInputFiles(){return this->InputFiles;}
 bool sdmixer::getRunPairfinder(){return this->runPairFinder;}
@@ -205,8 +210,13 @@ bool sdmixer::getRunFilter(){return this->runFilter;}
 bool sdmixer::getRunReconstructor(){return this->runReconstructor;}
 bool sdmixer::getForce2D(){return this->force2D;}
 int sdmixer::getPixelSize(){return this->pixelSizeNM;}
-double sdmixer::getOffset(int dim){return offset[dim];}
-double sdmixer::getEpsilon(int dim){return epsilon[dim];}
+double sdmixer::getOffset(int dim){
+    qDebug() << "offset " << dim << ": " <<offset[dim];
+    return offset[dim];
+}
+double sdmixer::getEpsilon(int dim){
+    qDebug()<<" epsilon " << dim << ": " << epsilon[dim];
+    return epsilon[dim];}
 sdmixer::fishing sdmixer::getFishing(){return this->fishingSettings;}
 std::vector<QString> sdmixer::getFilterFiles(){return this->FilterFiles;}
 double sdmixer::getMaxIntShort(){return this->maxIntensityShort;}
@@ -277,9 +287,11 @@ void sdmixer::on_startDemixing_clicked()
         connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         thread->start();
 
+        setStartDemixingButtonEnabled(false);
 
 
         qDebug() << p->getDimensions();
+
     }
 }
 
@@ -333,4 +345,18 @@ void sdmixer::on_actionSave_Preferences_triggered()
         s.initXML();
         s.writeSettingsToFile(fileName);
     }
+}
+
+void sdmixer::on_addFilterButton_clicked()
+{
+    QStringList fileName = QFileDialog::getOpenFileNames(this, tr("Open File"), QString(), tr("Image Files (*.png);;All Files (*.*)"));
+
+    if (!fileName.isEmpty())
+    {
+        for(auto i : fileName)
+        {
+            insertItem(i, listWidgetFilters);
+        }
+    }
+
 }

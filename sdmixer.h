@@ -42,6 +42,8 @@ public:
     void setSettingsToUI(Settings s);
     bool prepareForRun();
 
+    void setStartDemixingButtonEnabled(bool val);
+
 
     bool getRunPairfinder();
     bool getRunFilter();
@@ -77,6 +79,8 @@ private slots:
     void on_actionLoad_Settings_triggered();
 
     void on_actionSave_Preferences_triggered();
+
+    void on_addFilterButton_clicked();
 
 private:
 

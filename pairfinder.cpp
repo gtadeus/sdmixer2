@@ -1,9 +1,25 @@
 #include "pairfinder.h"
+#include "reconstructor.h"
 
 void PairFinder::doWork() {
     // allocate resources using new here
     qDebug()<<"started file loading in new thread";
     loadInputFile();
+    qDebug()<<"searching for pairs...";
+
+    FindPairs();
+
+    Reconstructor r(sdm);
+    //qDebug()<<"set min max";
+    r.setMinMax(min_x, max_x, min_y, max_y, min_z, max_z);
+
+    r.XYZfromFilter(output_file);
+    std::vector<PairFinder::Localization>().swap(output_file);
+    r.getMinMax();
+    r.setArray();
+    r.outputTIFF("out.tif");
+
+    sdm->setStartDemixingButtonEnabled(true);
     emit finished();
 }
 void PairFinder::Tokenize(const std::string& str,
@@ -67,10 +83,13 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     if(s->getForce2D())
         dimensions=2;
 
+    NM_PER_PX = sdm->getPixelSize();
+
     for(int i=0; i< dimensions; ++i)
     {
-        Offset[i]=sdm->getOffset(i);
-        Epsilon[i]=sdm->getEpsilon(i);
+        Offset[i]=sdm->getOffset(i)*NM_PER_PX;
+        Epsilon[i]=sdm->getEpsilon(i)*NM_PER_PX;
+
     }
 
     //loadFile(file);
@@ -132,36 +151,51 @@ void PairFinder::getHeader()
 
 void PairFinder::FindPairs(int last_frame)
 {
+
         int curr_row=0;
         int increment = 1;
         int endrow = 0;
 
-        if (last_frame != -1)
+        if (last_frame == -1)
             endrow = rawDataRows;
         else
             endrow = last_frame;
 
         while (curr_row < endrow)
         {
-            double EllipsoidSumR=0;
-            double EllipsoidSumL=0;
+
+
             Localization loc;
+
+            //qDebug() << input[curr_row*rawDataCols+FrameColumn];
+            //qDebug() << input[(curr_row+increment)*rawDataCols+FrameColumn];
 
             if( input[curr_row*rawDataCols+FrameColumn] == input[(curr_row+increment)*rawDataCols+FrameColumn] )
             {
+                double EllipsoidSumR=0;
+                double EllipsoidSumL=0;
+                //qDebug() << curr_row;
+                //qDebug() << curr_row+increment;
+
                 for (int d = 0; d < dimensions; ++d)
                 {
                     double tempL = ((input[curr_row*rawDataCols + d] - Offset[d]) - input[(curr_row+increment)*rawDataCols+d]);
                     double tempR = (input[(curr_row+increment)*rawDataCols+d] - Offset[d]) - input[curr_row*rawDataCols + d];
+                    //qDebug() <<"tempL: "<< tempL;
+                    //qDebug() << "tempR: " << tempR;
                     tempL*=tempL;
                     tempR*=tempR;
                     tempL/=(Epsilon[d]*Epsilon[d]);
                     tempR/=(Epsilon[d]*Epsilon[d]);
                     EllipsoidSumL += tempL;
                     EllipsoidSumR += tempR;
+
                 }
                 if (EllipsoidSumL <= 1 || EllipsoidSumR <= 1)
                 {
+                    ++numpairs;
+                    //qDebug() << EllipsoidSumL << " @ " << curr_row << " & " << (curr_row+increment);
+                    //qDebug() << EllipsoidSumR << " @ " << curr_row << " & " << (curr_row+increment);
                     int compare_col;
                     if(LeftRight)
                         compare_col = xCol;
@@ -199,8 +233,13 @@ void PairFinder::FindPairs(int last_frame)
                     grouped_rows.push_back(curr_row+increment);
 
                 }
-                if (increment != rawDataRows)
+                if (increment <= rawDataRows)
                     increment++;
+                else
+                {
+                    curr_row++;
+                    increment = 1;
+                }
             }
             else
             {
@@ -212,7 +251,7 @@ void PairFinder::FindPairs(int last_frame)
     std::sort ( grouped_rows.begin(), grouped_rows.end() );
     multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
 
-    qDebug() << "found " << numpairs << " pairs."
+    qDebug() << "found " << numpairs << " pairs." ;
 }
 
 

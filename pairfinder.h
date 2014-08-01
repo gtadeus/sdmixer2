@@ -16,14 +16,6 @@
 #include <QEventLoop>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_stl.hpp>
 
 #include "sdmixer.h"
 
@@ -42,6 +34,26 @@ public:
 
         int filter = 0;
 
+        double getShortDim(int dim)
+        {
+            if ( dim == 0)
+                return xShort;
+            if ( dim == 1)
+                return yShort;
+            if ( dim == 2)
+                return zShort;
+            return 0;
+        }
+        double getLongDim(int dim)
+        {
+            if ( dim == 0)
+                return xLong;
+            if ( dim == 1)
+                return yLong;
+            if ( dim == 2)
+                return zLong;
+            return 0;
+        }
     };
 
     PairFinder(sdmixer *s, QString f);
@@ -95,19 +107,20 @@ private:
     double min_y=0, max_y=0;
     double min_z=0, max_z=0;
 
+
     int numpairs = 0;
 
     int xCol = 0;
     int yCol = 1;
     int zCol = 2;
 
-    bool LeftRight = true;
+    bool LeftRight = false;
     int ShortChannel = 1;
 
     std::vector<int> grouped_rows;
 
-    int FrameColumn=4;
-    int IntensityColumn=5;
+    int FrameColumn=3;
+    int IntensityColumn=4;
 
     int NrOfDifferentFrames = 0;
     int multiple_counter = 0;
@@ -116,6 +129,8 @@ private:
 
     int rawDataCols = 0;
     int rawDataRows = 0;
+
+    double NM_PER_PX = 0;
 
     QString header;
 

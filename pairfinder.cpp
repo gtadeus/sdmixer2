@@ -2,8 +2,7 @@
 
 void PairFinder::doWork() {
     // allocate resources using new here
-    qDebug()<<"started";
-
+    qDebug()<<"started file loading in new thread";
     loadInputFile();
     emit finished();
 }
@@ -26,46 +25,10 @@ void PairFinder::Tokenize(const std::string& str,
         pos = str.find_first_of(delimiters, lastPos);
     }
 }
-namespace client
-{
-    namespace qi = boost::spirit::qi;
-    namespace ascii = boost::spirit::ascii;
-    namespace phoenix = boost::phoenix;
-
-    ///////////////////////////////////////////////////////////////////////////
-    //  Our number list compiler
-    ///////////////////////////////////////////////////////////////////////////
-    //[tutorial_numlist2
-    template <typename Iterator>
-    bool parse_numbers(Iterator first, Iterator last, std::vector<double>& v)
-    {
-        using qi::double_;
-        using qi::phrase_parse;
-        using qi::_1;
-        using ascii::space;
-        using phoenix::push_back;
-
-        bool r = phrase_parse(first, last,
-
-            //  Begin grammar
-                              (
-                                  double_ % ','
-                              )
-            ,
-            //  End grammar
-
-            qi::blank, v);
-
-        if (first != last) // fail if we did not get a full match
-            return false;
-        return r;
-    }
-    //]
-}
 
 void PairFinder::loadInputFile()
 {
-
+    sdm->writeToConsole("loading file...");
     QFile f(file);
     f.open(QIODevice::ReadOnly| QIODevice::Text);
 
@@ -74,7 +37,6 @@ void PairFinder::loadInputFile()
 
     while (!in.atEnd())
     {
-
         line = in.readLine();
 
         std::vector<std::string> v;
@@ -85,8 +47,6 @@ void PairFinder::loadInputFile()
         {
             input.push_back(strtod(i.c_str(), NULL));
         }
-
-
     }
 
     qDebug() << "total: " << input.size() ;
@@ -112,7 +72,6 @@ PairFinder::PairFinder(sdmixer *s, QString f)
         Offset[i]=sdm->getOffset(i);
         Epsilon[i]=sdm->getEpsilon(i);
     }
-    sdm->writeToConsole("loading file...");
 
     //loadFile(file);
     //s->writeToConsole("searching Pairs");
@@ -123,7 +82,6 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     str.append(QString::number(numpairs));
 
     s->writeToConsole(str);*/
-
 }
 void PairFinder::getHeader()
 {
@@ -253,6 +211,8 @@ void PairFinder::FindPairs(int last_frame)
 
     std::sort ( grouped_rows.begin(), grouped_rows.end() );
     multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
+
+    qDebug() << "found " << numpairs << " pairs."
 }
 
 

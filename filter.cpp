@@ -4,6 +4,11 @@
 
 Filter::Filter()
 {
+    // get input file
+    // load filters
+    // scale down intensities
+    // foreach filter check if localization is inside filter
+    // --> write filter number
 
 }
 

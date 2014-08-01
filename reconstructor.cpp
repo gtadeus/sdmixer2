@@ -250,20 +250,9 @@ void Reconstructor::hist_correct()
 {
 
 }
-void Reconstructor::outputTIFF( QString path)
+void Reconstructor::outputTIFF(QString path)
 {
-    //for ( int i = 0; i < max_z; ++i)
-
-
     uint16 spp, bpp, photo, res_unit;
-
-    out = TIFFOpen(path.toLocal8Bit(), "w8");
-
-    if (!out)
-    {
-        return;
-         // "Can't open %s for writing\n",
-    }
 
     spp = 1; /* Samples per pixel */
     //3 == rgb, 4 == alpha channel
@@ -281,11 +270,30 @@ void Reconstructor::outputTIFF( QString path)
 
     uint8 *array =static_cast<uint8*>((void*)file.data());
 
-    if (file.is_open())
+    int sum_pages=0;
+    int number_image=0;
+    QString current_image;
+    int current_page=0;
+
     for (int page = 0; page < image_z; page++)
     {
+        if((sum_pages) * image_width * image_height > 3*image_width*image);
+        {
+            current_page=0;
+            TIFFWriteDirectory(out);
+            TIFFClose(out);
+            current_image = path + QString::number(number_image);
+
+            qDebug()<<"TIFF " << number_image << " ready!";
+
+            out = TIFFOpen(current_image.toLocal8Bit(), "w");
+            if (!out){return;
+                 // "Can't open %s for writing\n"
+            }
+
+        }
         if(page%10 == 0)
-            qDebug() << "writing page: " << page;
+            qDebug() << "writing page (total): " << page << "  current: " << current_page;
         TIFFSetField(out, TIFFTAG_IMAGEWIDTH, image_width / spp);
         TIFFSetField(out, TIFFTAG_IMAGELENGTH, image_height);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bpp);
@@ -304,16 +312,17 @@ void Reconstructor::outputTIFF( QString path)
         TIFFSetField(out, TIFFTAG_SUBFILETYPE, FILETYPE_PAGE);
 
         /* Set the page number */
-        TIFFSetField(out, TIFFTAG_PAGENUMBER, page, image_z);
+        TIFFSetField(out, TIFFTAG_PAGENUMBER, current_page, image_z);
 
         for (int j = 0; j < image_height; j++)
             TIFFWriteScanline(out, &array[j * image_width], j, 0);
 
         TIFFWriteDirectory(out);
+        sum_pages++;
+        current_page++;
     }
+    TIFFClose(out);
     file.close();
-     TIFFClose(out);
-
-     qDebug()<<"TIFF out ready!!";
+    qDebug()<<"TIFF out ready!!";
 
 }

@@ -7,7 +7,7 @@ void Reconstructor::setArray()
 
     for(int i = 0; i < dimensions; ++i)
     {
-        maxPixels*=image_max[i];
+        maxPixels*=(image_max[i]+1);
     }
 
     boost::iostreams::mapped_file file;
@@ -16,7 +16,7 @@ void Reconstructor::setArray()
     params.path = "tmp.file";
 
     params.mode = (std::ios::out | std::ios::in);
-    params.new_file_size =  maxPixels*sizeof(uint8)+1;
+    params.new_file_size =  maxPixels*sizeof(uint8);
 
     file.open(params);
 
@@ -26,7 +26,7 @@ void Reconstructor::setArray()
     //array = new uint8[maxPixels];
     if (file.is_open())
     {
-    qDebug() << "initializing... map_pixel = " << maxPixels;
+    qDebug() << "initializing... max_pixel = " << maxPixels;
        for ( int i = 0; i < maxPixels; ++i)
        {
            array[i]=0;
@@ -106,7 +106,7 @@ void Reconstructor::getMinMax()
 uint64_t Reconstructor::linearIndex(Coordinates c)
 {
     int index = 0;
-    return c.get(0) + image_max[0]*c.get(1) + image_max[2]*image_max[0]*c.get(2);
+    return c.get(0) + (uint64_t) (image_max[0]+1)*c.get(1) + (uint64_t) (image_max[1]+1)*(image_max[0]+1)*c.get(2);
     //return image_max[0]*image_max[1]*c.get(0)+image_max[1]*c.get(1)+c.get(2);
     for ( int i = 0; i < dimensions; ++i)
     {
@@ -252,15 +252,16 @@ void Reconstructor::hist_correct()
 }
 void Reconstructor::outputTIFF(QString path)
 {
+    qDebug() << "writing TIFF";
     uint16 spp, bpp, photo, res_unit;
 
     spp = 1; /* Samples per pixel */
     //3 == rgb, 4 == alpha channel
     bpp = 8; /* Bits per sample */
     photo = PHOTOMETRIC_MINISBLACK;
-    int image_width = image_max[0];
-    int image_height = image_max[1];
-    int image_z = image_max[2];
+    uint64_t image_width = image_max[0] + 1;
+    uint64_t image_height = image_max[1] + 1;
+    int image_z = image_max[2] + 1;
 
     boost::iostreams::mapped_file_sink file;
     boost::iostreams::mapped_file_params params;
@@ -270,19 +271,37 @@ void Reconstructor::outputTIFF(QString path)
 
     uint8 *array =static_cast<uint8*>((void*)file.data());
 
-    int sum_pages=0;
+    uint64_t sum_pages=0;
     int number_image=0;
     QString current_image;
     int current_page=0;
 
+    out = TIFFOpen(path.toLocal8Bit(), "w");
+    if (!out){return;
+         // "Can't open %s for writing\n"
+    }
+
     for (int page = 0; page < image_z; page++)
     {
-        if((sum_pages) * image_width * image_height > 3*image_width*image);
+            qDebug() << "page: " << page;
+            qDebug() << "sum_pages: " << sum_pages;
+
+            uint64_t left =  sum_pages * image_width * image_height;
+            uint64_t right =  std::numeric_limits<uint32_t>::max();
+            qDebug() << left;
+            qDebug() << right;
+        if( left > 0.8*right) // 80% of the theoritally allowed max file_size
         {
+            qDebug() << "current_page = 0 ";
             current_page=0;
-            TIFFWriteDirectory(out);
+            sum_pages=0;
+            number_image++;
+            //TIFFWriteDirectory(out);
             TIFFClose(out);
-            current_image = path + QString::number(number_image);
+
+            current_image = path ;
+            current_image.replace(".tif", "");
+            current_image += (QString::number(number_image) + ".tif");
 
             qDebug()<<"TIFF " << number_image << " ready!";
 
@@ -302,11 +321,12 @@ void Reconstructor::outputTIFF(QString path)
         TIFFSetField(out, TIFFTAG_PHOTOMETRIC, photo);
         TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
         /* It is good to set resolutions too (but it is not nesessary) */
-        xres = yres = 100;//sdm->getPixelSize()*1e-7;
+        xres = yres = 1;//sdm->getPixelSize()*1e-7;
         res_unit = RESUNIT_CENTIMETER;
         TIFFSetField(out, TIFFTAG_XRESOLUTION, xres);
         TIFFSetField(out, TIFFTAG_YRESOLUTION, yres);
         TIFFSetField(out, TIFFTAG_RESOLUTIONUNIT, res_unit);
+        TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
          /* We are writing single page of the multipage file */
         TIFFSetField(out, TIFFTAG_SUBFILETYPE, FILETYPE_PAGE);
@@ -315,7 +335,7 @@ void Reconstructor::outputTIFF(QString path)
         TIFFSetField(out, TIFFTAG_PAGENUMBER, current_page, image_z);
 
         for (int j = 0; j < image_height; j++)
-            TIFFWriteScanline(out, &array[j * image_width], j, 0);
+            TIFFWriteScanline(out, &array[j * image_width + image_width*image_height*page], j, 0);
 
         TIFFWriteDirectory(out);
         sum_pages++;

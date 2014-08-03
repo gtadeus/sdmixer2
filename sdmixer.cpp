@@ -269,16 +269,16 @@ void sdmixer::on_startDemixing_clicked()
 {
     getSettingsFromUI();
 
-    if(InputFiles.empty())
+    /*if(InputFiles.empty())
     {
         QString err = error_msg("no input files selected");
         writeToConsole(err);
         return;
-    }
+    }*/
    // for (auto &i : InputFiles)
     {
         QThread* thread = new QThread;
-        PairFinder* p = new PairFinder(this, InputFiles[0]);
+        PairFinder* p = new PairFinder(this, "random"/*InputFiles[0]*/);
 
         p->moveToThread(thread);
         connect(thread, SIGNAL(started()), p, SLOT(doWork()));

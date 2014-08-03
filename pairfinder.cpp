@@ -4,20 +4,20 @@
 void PairFinder::doWork() {
     // allocate resources using new here
     qDebug()<<"started file loading in new thread";
-    loadInputFile();
+    //loadInputFile();
     qDebug()<<"searching for pairs...";
 
-    FindPairs();
+    //FindPairs();
 
     Reconstructor r(sdm);
     //qDebug()<<"set min max";
     r.setMinMax(min_x, max_x, min_y, max_y, min_z, max_z);
 
-    r.XYZfromFilter(output_file);
+    //r.XYZfromFilter(output_file);
     std::vector<PairFinder::Localization>().swap(output_file);
     r.getMinMax();
     r.setArray();
-    r.outputTIFF("out.tif");
+    //r.outputTIFF("out.tif");
 
     sdm->setStartDemixingButtonEnabled(true);
     emit finished();

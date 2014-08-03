@@ -58,7 +58,7 @@ public:
 
     PairFinder(sdmixer *s, QString f);
     void getHeader();
-void Tokenize(const std::string& str, std::vector<std::string>& tokens, const std::string delimiters);
+    void Tokenize(const std::string& str, std::vector<std::string>& tokens, const std::string delimiters);
     QString removeCharacters(QString input, char chars[])
     {
         std::string str = input.toStdString();

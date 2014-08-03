@@ -42,7 +42,7 @@ HEADERS  += sdmixer.h \
 
 FORMS    += sdmixer.ui
 
-LIBS += -llibtiff
+LIBS += -llibtiff -lfftw3-3 -lm
 
 
 win32:INCLUDEPATH += C:\Build\include

@@ -4,6 +4,9 @@
 #include <QString>
 #include <tiffio.h>
 #include <boost/iostreams/device/mapped_file.hpp>
+//#include <math.h>
+//#include <complex.h>
+#include <fftw3.h>
 #include "sdmixer.h"
 #include "pairfinder.h"
 
@@ -29,11 +32,28 @@ public:
         }
 
     };
+    void Convolution();
+    void CreateGaussianKernel();
+    void setKernel();
+    int pow2roundup (int x);
+
+
+    struct Kernel {
+        int k=1;
+        float sigma_xy;
+        float sigma_z;
+        int size=2*k+1;
+        int size_z=1;
+        float* data;
+        bool make3D=false;
+    };
 
     Reconstructor(sdmixer *s);
     void run();
     void convertTo2D();
     void createKernel();
+    void zeroPad();
+
     void convolve(double *kernel);
     void hist_correct();
     void getIndexFromXYZ();
@@ -51,7 +71,9 @@ public:
     void setArray();
 
 private:
+
     sdmixer *sdm;
+    Kernel krn;
 
     std::vector<Coordinates> xyz;
 
@@ -63,13 +85,13 @@ private:
 
     uint64_t maxPixels=1;
 
-    int xy_binning=10;
-    int z_binning=10;
+    int xy_binning=200;
+    int z_binning=200;
 
     int hist_correct_value;
     int hist_threshold;
 
-    double *kernel;
+    //float *kernel;
     int kernel_dim;
 
     int dimensions=3;

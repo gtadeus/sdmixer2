@@ -5,7 +5,7 @@
 #include <tiffio.h>
 #include <boost/iostreams/device/mapped_file.hpp>
 //#include <math.h>
-//#include <complex.h>
+//#include <complex>
 #include <fftw3.h>
 #include "sdmixer.h"
 #include "pairfinder.h"
@@ -107,7 +107,13 @@ private:
 
     char * tmpfile = "tmp.file";
 
-
+    char * conv_temp = "convn.temp";
+    char *pad_img_file;
+    char *pad_filter;
+    char *fft_img;
+    char *fft_filter;
+    char *pad_img;
+    char *out_img;
 
     //uint8* data;
 

@@ -102,20 +102,9 @@ int Reconstructor::pow2roundup (int x)
 }
 void Reconstructor::Convolution()
 {
-    boost::iostreams::mapped_file pad_img, pad_filter, fft_img, fft_filter, pad_img, out_img;
-    boost::iostreams::mapped_file_params params;
-    remove(tmpfile);
-    params.path = "tmp.file";
-
-    params.mode = (std::ios::out | std::ios::in);
-    params.new_file_size =  maxPixels*sizeof(uint8);
-
-    file.open(params);
-
-    uint8 * array =static_cast<uint8*>((void*)file.data());
-    int img_sizeX = 5;//image_max[0] + 1;
-    int img_sizeY = 5;//image_max[1] + 1;
-    int img_sizeZ = 1;//image_max[2] + 1;
+    int img_sizeX = 3;//image_max[0] + 1;
+    int img_sizeY = 3;//image_max[1] + 1;
+    int img_sizeZ = 3;//image_max[2] + 1;
     int NPixel=img_sizeX*img_sizeY*img_sizeZ;
 
 
@@ -125,13 +114,12 @@ void Reconstructor::Convolution()
     for (int i = 0; i < NPixel; ++i)
         image[i]=0;
 
-    image[12]=1;
+    image[13]=1;
+
     int M=img_sizeX;
     int N=img_sizeY;
     int Z=img_sizeZ;
 
-
-    fftw_plan p_forw_src, p_forw_kernel, pinv;
 
     double scale = 1.0 / (M * N * Z);
 
@@ -144,45 +132,70 @@ void Reconstructor::Convolution()
     else
         z_fftw = 1;
 
+   // int NPixelPadded = h_fftw * w_fftw * z_fftw;
+    //int NPixelFFT = h_fftw * w_fftw * (z_fftw/2+1);
     int NPixelPadded = h_fftw * w_fftw * z_fftw;
-    int NPixelFFT = h_fftw * w_fftw * (z_fftw/2+1);
+    int NPixelFFT = h_fftw * w_fftw * floor(z_fftw/2 +1);
 
     qDebug() << h_fftw << "  " << h_fftw << "  " << z_fftw;
+    qDebug() << M << "  " << N << "  " << Z;
+    /*
+    boost::iostreams::mapped_file pad_img, pad_filter, fft_img, fft_filter, pad_img, out_img;
+    boost::iostreams::mapped_file_params params;
+    remove("conv.file");
+    params.path = "conv.file";
 
-    double *in_src = new double[NPixelPadded];
-    fftw_complex *out_src = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    double *in_kernel = new double[NPixelPadded];
-    fftw_complex *out_kernel = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
+    params.mode = (std::ios::out | std::ios::in);
+    params.new_file_size =  NPixelFFT * sizeof(fftw_complex) * NPixelPadded * sizeof(fftw_complex);
+
+    file.open(params);
+    uint8 * array =static_cast<uint8*>((void*)file.data());*/
+
+    fftw_plan p_forw_src, p_forw_kernel, pinv;
+
+
+    //double *in_src = new double[NPixelPadded];
+    //fftw_complex *out_src = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
+    double *out_src = (double*) fftw_malloc(sizeof(fftw_complex) *  NPixelFFT);
+
+    //double *in_kernel = new double[NPixelPadded];
+    //fftw_complex *out_kernel = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
+    double *out_kernel = (double*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
     //fftw_complex *mult = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    double *dst_fft = new double[NPixelPadded];
+    //double *dst_fft = new double[NPixelPadded];
     double *dst = new double[NPixel];
 
-    for (int i = 0; i < NPixelPadded; ++i)
+   for (int i = 0; i < 2*NPixelFFT; ++i)
     {
-            in_src[i] = 0;
-            in_kernel[i] = 0;
+        out_src[i]=0;
+        out_kernel[i]=0;
     }
 
     for (int i = 0; i < M; ++i)
         for (int j = 0; j < N; ++j)
             for ( int k = 0; k < Z; ++k)
             {
-                in_src[i+w_fftw*j+w_fftw*h_fftw*k] = image[i+img_sizeX*j+img_sizeX*img_sizeY*k];
+
+                //out_src[i+(w_fftw+1)*j+(w_fftw)*(h_fftw+1)*k] = image[i+img_sizeX*j+img_sizeX*img_sizeY*k];
+                out_src[k + (h_fftw+2) * j + (h_fftw+2)*(w_fftw) * i] = image[k+img_sizeY*j+img_sizeX*img_sizeY*i];
+                //in_src[i+w_fftw*j] = image[i+img_sizeX*j];
             }
     for (int i = 0; i < krn.size; ++i)
         for (int j = 0; j < krn.size; ++j)
             for(int k = 0; k < krn.size_z; ++k)
             {
-                in_kernel[i+w_fftw*j + w_fftw*h_fftw*k] = krn.data[i+krn.size*j+krn.size*krn.size*k];
-            }
+                //out_kernel[i+(w_fftw+2)*j] = krn.data[i+krn.size*j];
+                out_kernel[k + (h_fftw+2) * j + (h_fftw+2)*(w_fftw) * i] = krn.data[k+krn.size*j+krn.size*krn.size*i];
 
-   /* qDebug() << "insrc:";
+          }
+
+    qDebug() << "insrc:";
     for (int i=0;i<NPixelPadded; ++i)
-        qDebug()<< in_src[i];
+        qDebug()<< out_src[i];
     qDebug() << "kernel:";
     for (int i=0;i<NPixelPadded; ++i)
-        qDebug()<< in_kernel[i];
-*/
+        qDebug()<< out_kernel[i];
+
     //CONVN : SAME
 
 
@@ -195,26 +208,43 @@ void Reconstructor::Convolution()
     n[1]=w_fftw;
     n[2]=z_fftw;
 
-    p_forw_src = fftw_plan_dft_r2c(3, n, in_src, out_src, FFTW_ESTIMATE);
-    p_forw_kernel = fftw_plan_dft_r2c(3, n, in_kernel, out_kernel, FFTW_ESTIMATE);
+    p_forw_src = fftw_plan_dft_r2c(3, n, out_src, (fftw_complex*) out_src, FFTW_ESTIMATE);
+    p_forw_kernel = fftw_plan_dft_r2c(3, n, out_kernel, (fftw_complex*) out_kernel, FFTW_ESTIMATE);
+
 
     /* create plan for IFFT; */
     //pinv = fftw_plan_dft_c2r_2d(h_fftw, w_fftw, mult, dst_fft, FFTW_ESTIMATE);
-    pinv = fftw_plan_dft_c2r(3, n, out_kernel, dst_fft, FFTW_ESTIMATE);
+
+    pinv = fftw_plan_dft_c2r(3, n, (fftw_complex*) out_kernel, out_kernel, FFTW_ESTIMATE);
+
     qDebug()<< "created plan";
     fftw_execute(p_forw_src);
     qDebug()<< "executed plan1";
     fftw_execute(p_forw_kernel);
     qDebug()<< "executed plan2";
 
-    for (int i = 0; i < NPixelFFT; ++i)
+    for (int i = 0; i < 2*(NPixelFFT); i+=2)
     {
-        out_kernel[i][0] = (out_src[i][0] * out_kernel[i][0] - out_src[i][1] * out_kernel[i][1]);
-        out_kernel[i][1] = (out_src[i][0] * out_kernel[i][1] + out_src[i][1] * out_kernel[i][0]);
+        //std::complex<double> x = out_kernel[i];
+        //qDebug() << out_kernel[i]  << "  " << out_src[i];
+        //qDebug() << out_kernel[i][0] ;
+        //out_kernel[i][0] = (out_src[i][0] * out_kernel[i][0] - out_src[i][1] * out_kernel[i][1]);
+        //out_kernel[i][1] = (out_src[i][0] * out_kernel[i][1] + out_src[i][1] * out_kernel[i][0]);
+        //qDebug() << i;
+        double real_s, real_k, img_s, img_k;
+        real_s = out_src[i];
+        real_k = out_kernel[i];
+        img_s = out_src[i+1];
+        img_k = out_kernel[i+1];
+
+        out_kernel[i] = (real_s * real_k - img_s * img_k);
+        out_kernel[i+1] = (real_s * img_k + img_s * real_k);
+        //out_kernel[i+1] = (out_src[i] * out_kernel[i+1] + out_src[i+1] * out_kernel[i]);
+
     }
 
     fftw_execute(pinv);
-
+    qDebug() << "executed plan3";
     //scale
 
 
@@ -227,15 +257,12 @@ void Reconstructor::Convolution()
         for (int j = floor(krn.size/2); j < (N+floor(krn.size/2)); ++j)
             for(int k = floor(krn.size_z/2); k < (Z+floor(krn.size_z/2)); ++k)
             {
-                dst[index] = dst_fft[i+w_fftw*j+w_fftw*h_fftw*k];
+                dst[index] = out_kernel[k+(h_fftw+2)*j+w_fftw*(h_fftw+2)*i] * scale;
                 ++index;
             }
 
-    for (int i=0;i<NPixel; ++i)
-            dst[i]*=scale;
-
-   /*for(int i=0; i< NPixel; ++i)
-        qDebug() << dst[i];*/
+   for(int i=0; i< NPixel; i++)
+        qDebug() << dst[i];
 
     qDebug() << "convolution ready!";
 
@@ -295,7 +322,7 @@ void Reconstructor::setKernel()
 {
     krn.sigma_xy=2;
     krn.sigma_z=2;
-    krn.make3D=false ;
+    krn.make3D=true ;
     krn.data = new float[krn.size*krn.size*krn.size];
 }
 

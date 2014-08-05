@@ -278,7 +278,7 @@ void sdmixer::on_startDemixing_clicked()
    // for (auto &i : InputFiles)
     {
         QThread* thread = new QThread;
-        PairFinder* p = new PairFinder(this, "random"/*InputFiles[0]*/);
+        PairFinder* p = new PairFinder(this, InputFiles[0]);
 
         p->moveToThread(thread);
         connect(thread, SIGNAL(started()), p, SLOT(doWork()));

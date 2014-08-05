@@ -39,7 +39,7 @@ Settings::Settings(sdmixer *s)
     setFilterFiles(s->getFilterFiles());
 
     setXYBinning(s->getReconstructor_xyBinning());
-    setZBinning(s->getReconstructor_xyBinning());
+    setZBinning(s->getReconstructor_zBinning());
 
 }
 
@@ -125,7 +125,7 @@ void Settings::initXML(){
     appendChildNode(filter, "maxIntLong", maxIntensityLong);
     appendChildNode(filter, "precision", precision);
 
-    QDomElement reconstructor = createField("Reconstructor");
+    QDomElement reconstructor = createField("ReconstructorSettings");
     settings.appendChild(reconstructor);
     appendChildNode(reconstructor, "xyBinning", xyBinning);
     appendChildNode(reconstructor, "zBinning", zBinning);
@@ -328,5 +328,4 @@ void Settings::loadFromFile(QString file){
             }
         }
     }
-    qDebug() << offset[2];
 }

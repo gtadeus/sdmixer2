@@ -831,7 +831,6 @@
       <zorder>comboBox_FWHM_xy</zorder>
       <zorder>comboBox_FWHM_z</zorder>
       <zorder>label_24</zorder>
-      <zorder>groupBox_4</zorder>
      </widget>
      <widget class="QGroupBox" name="groupBox_6">
       <property name="geometry">

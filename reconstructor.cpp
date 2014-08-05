@@ -7,20 +7,22 @@ void Reconstructor::setArray()
 
     for(int i = 0; i < dimensions; ++i)
     {
+        qDebug()<<"set Array image_max[i]: " <<image_max[i];
         maxPixels*=(image_max[i]+1);
     }
-
+    qDebug()<<maxPixels;
     boost::iostreams::mapped_file file;
     boost::iostreams::mapped_file_params params;
-    remove(tmpfile) ;
-    params.path = "tmp.file";
+
+    remove(tiff_temp_file);
+    params.path = tiff_temp_file;
 
     params.mode = (std::ios::out | std::ios::in);
     params.new_file_size =  maxPixels*sizeof(uint8);
 
     file.open(params);
 
-    uint8 * array =static_cast<uint8*>((void*)file.data());
+    uint8 *array =static_cast<uint8*>((void*)file.data());
 
     //data[0] = 12;
     //array = new uint8[maxPixels];
@@ -60,37 +62,14 @@ void Reconstructor::setArray()
     }
     file.close();
 
-   /* array = new uint8[maxPixels];
-    qDebug() << "initializing... map_pixel = " << maxPixels;
-    for ( int i = 0; i < maxPixels; ++i)
-    {
-        array[i]=0;
-    }
-    qDebug() << "populating...";
-    for( auto i : xyz)
-    {
-        //qDebug() << linearIndex(i) << " : " << i.x << " " << i.y << " " << i.z;
-        array[linearIndex(i)] += 1;
-    }
 
     qDebug() << "finish array";
-*/
-    //delete[] array;
-
-    setKernel();
-    CreateGaussianKernel();
-    /*for(int i = 0; i < krn.size * krn.size; ++i)
-        qDebug() << krn.data[i];*/
-
-    Convolution();
-}
-void Reconstructor::zeroPad()
-{
 
 }
+
 int Reconstructor::pow2roundup (int x)
 {
-    if (x < 0)
+    /*if (x < 0)
         return 0;
     --x;
     x |= x >> 1;
@@ -98,23 +77,22 @@ int Reconstructor::pow2roundup (int x)
     x |= x >> 4;
     x |= x >> 8;
     x |= x >> 16;
+    return x+1;*/
     return x+1;
 }
 void Reconstructor::Convolution()
 {
-    int img_sizeX = 3;//image_max[0] + 1;
-    int img_sizeY = 3;//image_max[1] + 1;
-    int img_sizeZ = 3;//image_max[2] + 1;
+    int img_sizeX = image_max[0] + 1;
+    int img_sizeY = image_max[1] + 1;
+    int img_sizeZ = image_max[2] + 1;
     int NPixel=img_sizeX*img_sizeY*img_sizeZ;
 
+    //double *image_out = new double[img_sizeX*img_sizeY*img_sizeZ];
 
-    double *image = new double[img_sizeX*img_sizeY*img_sizeZ];
-    double *image_out = new double[img_sizeX*img_sizeY*img_sizeZ];
+    //for (int i = 0; i < NPixel; ++i)
+        //image[i]=0;
 
-    for (int i = 0; i < NPixel; ++i)
-        image[i]=0;
-
-    image[13]=1;
+    //image[13]=1;
 
     int M=img_sizeX;
     int N=img_sizeY;
@@ -123,8 +101,8 @@ void Reconstructor::Convolution()
 
     double scale = 1.0 / (M * N * Z);
 
-    int h_fftw = pow2roundup(M + krn.k);
-    int w_fftw = pow2roundup(N + krn.k);
+    int w_fftw = pow2roundup(M + krn.k);
+    int h_fftw = pow2roundup(N + krn.k);
 
     int z_fftw;
     if(krn.make3D)
@@ -132,141 +110,203 @@ void Reconstructor::Convolution()
     else
         z_fftw = 1;
 
-   // int NPixelPadded = h_fftw * w_fftw * z_fftw;
-    //int NPixelFFT = h_fftw * w_fftw * (z_fftw/2+1);
+
     int NPixelPadded = h_fftw * w_fftw * z_fftw;
-    int NPixelFFT = h_fftw * w_fftw * floor(z_fftw/2 +1);
+    int NPixelFFT = h_fftw * w_fftw * ceil((double)z_fftw/2.0 +1.0);
 
-    qDebug() << h_fftw << "  " << h_fftw << "  " << z_fftw;
+    qDebug() << w_fftw << "  " << h_fftw << "  " << z_fftw;
     qDebug() << M << "  " << N << "  " << Z;
-    /*
-    boost::iostreams::mapped_file pad_img, pad_filter, fft_img, fft_filter, pad_img, out_img;
+
+    boost::iostreams::mapped_file image_in;
     boost::iostreams::mapped_file_params params;
-    remove("conv.file");
-    params.path = "conv.file";
-
     params.mode = (std::ios::out | std::ios::in);
-    params.new_file_size =  NPixelFFT * sizeof(fftw_complex) * NPixelPadded * sizeof(fftw_complex);
+    params.path = tiff_temp_file;
+    image_in.open(params);
+    uint8 *img_in =static_cast<uint8*>((void*)image_in.data());
 
-    file.open(params);
-    uint8 * array =static_cast<uint8*>((void*)file.data());*/
+    boost::iostreams::mapped_file fft_src, fft_kernel;
+    boost::iostreams::mapped_file_params params_scr, params_kernel;
+    remove(fft_src_file);
+    remove(fft_krnl_file);
+    params_scr.path = fft_src_file;
+    params_kernel.path = fft_krnl_file;
 
-    fftw_plan p_forw_src, p_forw_kernel, pinv;
+    params_scr.mode = (std::ios::out | std::ios::in);
+    params_kernel.mode = (std::ios::out | std::ios::in);
 
+    params_scr.new_file_size =  NPixelFFT*sizeof(fftwf_complex);
+    params_kernel.new_file_size =  NPixelFFT*sizeof(fftwf_complex);
 
-    //double *in_src = new double[NPixelPadded];
-    //fftw_complex *out_src = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    double *out_src = (double*) fftw_malloc(sizeof(fftw_complex) *  NPixelFFT);
+    fft_src.open(params_scr);
+    fft_kernel.open(params_kernel);
 
-    //double *in_kernel = new double[NPixelPadded];
-    //fftw_complex *out_kernel = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    double *out_kernel = (double*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    //fftw_complex *mult = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * NPixelFFT);
-    //double *dst_fft = new double[NPixelPadded];
-    double *dst = new double[NPixel];
+    fftwf_plan p_forw_src, p_forw_kernel, pinv;
 
-   for (int i = 0; i < 2*NPixelFFT; ++i)
+    //double *out_src = (double*) fftwf_malloc(sizeof(fftwf_complex) *  NPixelFFT);
+    //double *out_kernel = (double*) fftwf_malloc(sizeof(fftwf_complex) * NPixelFFT);
+
+    qDebug() << "fft tempfiles created";
+    float *out_src = static_cast<float*>((void*)fft_src.data());
+    float *out_kernel = static_cast<float*>((void*)fft_kernel.data());
+
+    for (int i = 0; i < 2*NPixelFFT; ++i)
     {
+
         out_src[i]=0;
         out_kernel[i]=0;
     }
+    qDebug() << "conv init ready";
+
+     double tempsum = 0;
+     double tempsum2 = 0;
+
+     for (int i=0;i<NPixel; ++i)
+         tempsum += (double) img_in[i];
 
     for (int i = 0; i < M; ++i)
         for (int j = 0; j < N; ++j)
             for ( int k = 0; k < Z; ++k)
             {
+                uint64_t indTIFF = linearIndexTIFF(i, j, k, img_sizeX, img_sizeY);
+                uint64_t indFFT = linearIndex3DFFT(i, j, k, z_fftw, h_fftw);
+                //int ind = i+img_sizeX*( j+ img_sizeY*k );
+                //int indFFT = k + (z_fftw+2)*(j+h_fftw*i);
+                int d = img_in[indTIFF];
 
-                //out_src[i+(w_fftw+1)*j+(w_fftw)*(h_fftw+1)*k] = image[i+img_sizeX*j+img_sizeX*img_sizeY*k];
-                out_src[k + (h_fftw+2) * j + (h_fftw+2)*(w_fftw) * i] = image[k+img_sizeY*j+img_sizeX*img_sizeY*i];
-                //in_src[i+w_fftw*j] = image[i+img_sizeX*j];
+                out_src[indFFT] = (float)d;
+
             }
     for (int i = 0; i < krn.size; ++i)
         for (int j = 0; j < krn.size; ++j)
             for(int k = 0; k < krn.size_z; ++k)
             {
-                //out_kernel[i+(w_fftw+2)*j] = krn.data[i+krn.size*j];
-                out_kernel[k + (h_fftw+2) * j + (h_fftw+2)*(w_fftw) * i] = krn.data[k+krn.size*j+krn.size*krn.size*i];
+                uint64_t indFFT = linearIndex3DFFT(i, j, k, z_fftw, h_fftw);
+                //int indFFT = k + (z_fftw+2)*(j+h_fftw*i);
+                uint64_t indTIFF = linearIndexTIFF(i, j, k, krn.size, krn.size);
+                out_kernel[indFFT] = krn.data[indTIFF];
+            }
+    for (int i=0;i<NPixelFFT; ++i)
+        tempsum2+=out_src[i];
 
-          }
+    qDebug() << "tempsum1: " << tempsum << "tempsum2: " << tempsum2;
 
-    qDebug() << "insrc:";
-    for (int i=0;i<NPixelPadded; ++i)
-        qDebug()<< out_src[i];
-    qDebug() << "kernel:";
-    for (int i=0;i<NPixelPadded; ++i)
-        qDebug()<< out_kernel[i];
 
     //CONVN : SAME
 
-
     /* create plan for FFT; */
-    // image
-    //p_forw_src = fftw_plan_dft_r2c_2d(h_fftw, w_fftw, in_src, out_src, FFTW_ESTIMATE);
-    //p_forw_kernel = fftw_plan_dft_r2c_2d(h_fftw, w_fftw, in_kernel, out_kernel, FFTW_ESTIMATE);
     int n[3];
-    n[0]=h_fftw;
-    n[1]=w_fftw;
+    n[0]=w_fftw;
+    n[1]=h_fftw;
     n[2]=z_fftw;
 
-    p_forw_src = fftw_plan_dft_r2c(3, n, out_src, (fftw_complex*) out_src, FFTW_ESTIMATE);
-    p_forw_kernel = fftw_plan_dft_r2c(3, n, out_kernel, (fftw_complex*) out_kernel, FFTW_ESTIMATE);
+    fftw_init_threads();
+    fftw_plan_with_nthreads(8);
 
+    p_forw_src = fftwf_plan_dft_r2c(3, n, out_src, (fftwf_complex*) out_src, FFTW_ESTIMATE);
+    p_forw_kernel = fftwf_plan_dft_r2c(3, n, out_kernel, (fftwf_complex*) out_kernel, FFTW_ESTIMATE);
 
-    /* create plan for IFFT; */
-    //pinv = fftw_plan_dft_c2r_2d(h_fftw, w_fftw, mult, dst_fft, FFTW_ESTIMATE);
-
-    pinv = fftw_plan_dft_c2r(3, n, (fftw_complex*) out_kernel, out_kernel, FFTW_ESTIMATE);
+    // iFFT
+    pinv = fftwf_plan_dft_c2r(3, n, (fftwf_complex*) out_kernel, out_kernel, FFTW_ESTIMATE);
 
     qDebug()<< "created plan";
-    fftw_execute(p_forw_src);
+    fftwf_execute(p_forw_src);
     qDebug()<< "executed plan1";
-    fftw_execute(p_forw_kernel);
+    fftwf_execute(p_forw_kernel);
     qDebug()<< "executed plan2";
+
 
     for (int i = 0; i < 2*(NPixelFFT); i+=2)
     {
-        //std::complex<double> x = out_kernel[i];
-        //qDebug() << out_kernel[i]  << "  " << out_src[i];
-        //qDebug() << out_kernel[i][0] ;
-        //out_kernel[i][0] = (out_src[i][0] * out_kernel[i][0] - out_src[i][1] * out_kernel[i][1]);
-        //out_kernel[i][1] = (out_src[i][0] * out_kernel[i][1] + out_src[i][1] * out_kernel[i][0]);
-        //qDebug() << i;
-        double real_s, real_k, img_s, img_k;
+        float real_s, real_k, img_s, img_k;
         real_s = out_src[i];
         real_k = out_kernel[i];
         img_s = out_src[i+1];
         img_k = out_kernel[i+1];
-
+        //qDebug() << real_s << "  " << img_s << "  "  << real_k << "  " << img_k;
         out_kernel[i] = (real_s * real_k - img_s * img_k);
         out_kernel[i+1] = (real_s * img_k + img_s * real_k);
-        //out_kernel[i+1] = (out_src[i] * out_kernel[i+1] + out_src[i+1] * out_kernel[i]);
-
+        //qDebug() << out_kernel[i] << "  " << out_kernel[i+1];
     }
+    //for(int i=0; i< NPixelFFT; i++)
+         //qDebug() << out_kernel[i];
 
-    fftw_execute(pinv);
+    fftwf_execute(pinv);
     qDebug() << "executed plan3";
-    //scale
 
-
-   /* for(int i=0; i< NPixelPadded; ++i)
-        qDebug() << dst_fft[i];*/
-
-    int index = 0;
+    uint64_t index = 0;
 
     for (int i = floor(krn.size/2); i < (M+floor(krn.size/2)); ++i)
         for (int j = floor(krn.size/2); j < (N+floor(krn.size/2)); ++j)
             for(int k = floor(krn.size_z/2); k < (Z+floor(krn.size_z/2)); ++k)
             {
-                dst[index] = out_kernel[k+(h_fftw+2)*j+w_fftw*(h_fftw+2)*i] * scale;
+
+                //int indFFT = i + (w_fftw)*(j+h_fftw*k);
+                uint64_t indTIFF = linearIndexTIFF(i-floor(krn.size/2), j-floor(krn.size/2), k-floor(krn.size/2), img_sizeX, img_sizeY);
+                uint64_t indFFT = linearIndex3DFFT(i, j, k, z_fftw, h_fftw);
+                /*if(indTIFF > 510087299)
+                    qDebug() << "indTiff: " << indTIFF;
+                if(indFFT > 527106047)
+                    qDebug() << "indFFT: " << indFFT;*/
+
+                //int indFFT = k + (z_fftw+2)*(j+h_fftw*i);
+                //int index = (i-floor(krn.size/2)) + img_sizeX*((j-floor(krn.size/2))+img_sizeY*(k-floor(krn.size_z/2)));
+                int val = (int) out_kernel[indFFT] * scale * 255.0;
+                img_in[indTIFF] = val;
+                int dd = img_in[indTIFF];
+
+                if ( index == 0)
+                {
+                    dbl_image_min=dd;
+                    dbl_image_max=dd;
+                }
+                if (dbl_image_min>dd)
+                    dbl_image_min=dd;
+                if(dbl_image_max<dd)
+                    dbl_image_max=dd;
+
+                //qDebug() << out_kernel[k+(h_fftw+2)*j+z_fftw*(h_fftw+2)*i];
                 ++index;
             }
+    qDebug() << "image_max_charval: " << dbl_image_max;
+    qDebug() << "image_min_charval: " << dbl_image_min;
 
-   for(int i=0; i< NPixel; i++)
-        qDebug() << dst[i];
+    image_in.close();
+    fft_src.close();
+    fft_kernel.close();
+
+    fftw_cleanup_threads();
 
     qDebug() << "convolution ready!";
 
 }
+void Reconstructor::map8bit()
+{
+    qDebug() << "map8 bit";
+    boost::iostreams::mapped_file_sink image;
+    boost::iostreams::mapped_file_params params;
+    params.path = tiff_temp_file;
+    image.open(params);
+    uint8 *img_in =static_cast<uint8*>((void*)image.data());
+
+/*
+    uint64_t NPixel = 1;
+    for (int i = 0; i < dimensions; ++i)
+        NPixel*=image_size[i];*/
+
+    //params_file_out.new_file_size =  maxPixels*sizeof(uint8);
+
+
+    for(uint64_t i = 0; i < maxPixels; ++i)
+    {
+        img_in[i] =
+                (uint8_t) ( (double) img_in[i] - dbl_image_min)*
+                (255.0/(dbl_image_max-dbl_image_min));
+    }
+    image.close();
+    qDebug() << "map8 bit finished";
+
+}
+
 void Reconstructor::CreateGaussianKernel()
 {
     float f;
@@ -275,9 +315,6 @@ void Reconstructor::CreateGaussianKernel()
     float e = 2.71828;
 
     // kernel[2k+1][2k+1][2k+1]
-    ///////////////////////////////
-    //e ^ -(x*x + y*y)/2 * sigma * sigma
-    ////////////////////////////////
 
     if (krn.make3D)
     {
@@ -324,9 +361,10 @@ void Reconstructor::setKernel()
     krn.sigma_z=2;
     krn.make3D=true ;
     krn.data = new float[krn.size*krn.size*krn.size];
+    CreateGaussianKernel();
 }
 
-
+/*
 void Reconstructor::getMinMax()
 {
     int counter = 0;
@@ -351,32 +389,38 @@ void Reconstructor::getMinMax()
         qDebug() << image_max[i];
     }
 }
-
+*/
 uint64_t Reconstructor::linearIndex(Coordinates c)
 {
-    int index = 0;
-    return c.get(0) + (uint64_t) (image_max[0]+1)*c.get(1) + (uint64_t) (image_max[1]+1)*(image_max[0]+1)*c.get(2);
-    //return image_max[0]*image_max[1]*c.get(0)+image_max[1]*c.get(1)+c.get(2);
-    for ( int i = 0; i < dimensions; ++i)
-    {
-        int prod=1;
-        for(int j = (i+1); j < dimensions; ++j)
-        {
-            prod *= (image_max[j]-1);
-        }
-        index += (c.get(i) * prod);
-    }
 
-    return index;
+    return (uint64_t) c.get(0) + (uint64_t) (image_max[0]+1)*( c.get(1) + (uint64_t) (image_max[1]+1)*c.get(2));
+    //return c.get(2) + (uint64_t) (image_max[2]+1)*( c.get(1) + (uint64_t) (image_max[1]+1)*c.get(0));
+    //return c.get(0) + (uint64_t) (image_max[0]+1)*c.get(1) + (uint64_t) (image_max[1]+1)*(image_max[0]+1)*c.get(2);
+    //return image_max[0]*image_max[1]*c.get(0)+image_max[1]*c.get(1)+c.get(2);
+
 }
 
+uint64_t Reconstructor::linearIndex3DFFT( int i, int j, int k, int z_fftw, int h_fftw)
+{
+    return (uint64_t) k + ((uint64_t)(z_fftw+2))*((uint64_t)(j+h_fftw*i));
+}
+uint64_t Reconstructor::linearIndex2DFFT( int i, int j, int h_fftw)
+{
+    return (uint64_t)j+((uint64_t)(h_fftw+2))*((uint64_t)i);
+}
+uint64_t Reconstructor::linearIndexTIFF( int i, int j, int k, int img_sizeX, int img_sizeY)
+{
+    return (uint64_t)i+((uint64_t)img_sizeX)*((uint64_t) j+ ((uint64_t)img_sizeY)*((uint64_t)k) );
+}
 
 
 void Reconstructor::setMinMax(double min_x, double max_x,
                               double min_y, double max_y,
-                                double min_z, double max_z)
+                              double min_z, double max_z)
 {
     // min max, convert from m to nm
+    double min_val[3]={0};
+    double max_val[3]={0};
 
     min_val[0]=min_x * 1e9;
     max_val[0]=max_x * 1e9;
@@ -386,10 +430,21 @@ void Reconstructor::setMinMax(double min_x, double max_x,
 
     min_val[2]=min_z * 1e9;
     max_val[2]=max_z * 1e9;
+
+    for (int i = 0; i < dimensions; ++i)
+    {
+      if(round(max_val[i]) != 0)
+      {
+          image_max[i] = round(max_val[i]/binning[i]);
+          image_size[i] = image_max[i]+1;
+      }
+    }
+    //image_max[i] = round(max_val[i])/xy_binning;
+    //image_max[2] = round(max_val[2])/z_binning;
 }
 
-void Reconstructor::XYZfromFilter(std::vector<PairFinder::Localization>& data)
-{
+void Reconstructor::XYZfromFilter()
+{/*
     for (auto i : data)
     {
 
@@ -418,10 +473,10 @@ void Reconstructor::XYZfromFilter(std::vector<PairFinder::Localization>& data)
                 c.z = round(i.zLong/z_binning);
                 xyz.push_back(c);
             }
-    }
-    qDebug() << "ready " << xyz[0].x << "  " << xyz[0].y<< "  "  << xyz[0].z;
+    }*/
+    //qDebug() << "ready, first (x,y,z) tupel:" << xyz[0].x << "  " << xyz[0].y<< "  "  << xyz[0].z;
 }
-
+/*
 void Reconstructor::getIndexFromXYZ()
 {
     // N1xN2xN3 Array
@@ -448,111 +503,119 @@ void Reconstructor::getIndexFromXYZ()
         }
     }
 }
-
-Reconstructor::Reconstructor(sdmixer *s)
+*/
+static bool pred( const std::string &s ) {
+  // ...
+}
+Reconstructor::Reconstructor(sdmixer *s, std::vector<PairFinder::Localization>& data)
 {
     this->sdm = s;
-    //load filter output
-    //convert xyz coordinates to
-    //round vectors to full nm
-    // get min max nm
+    binning[0] = s->getReconstructor_xyBinning();
+    binning[1] = s->getReconstructor_xyBinning();
+    binning[2] = s->getReconstructor_zBinning();
+    int index = 0;
 
-    //horzcat input
+    for (auto loc : data)
+    {
+        Coordinates c;
 
-    // CONVERT DATA TO XYZ
-    // dann kann für jeden kanal einzelm geblurrt werden
+        for(int i = 0; i < dimensions; ++i)
+        {
+            int short_val = round(loc.getShortDim(i)/binning[i]);
+            if (index == 0)
+            {
+                image_min[i]=short_val;
+                image_max[i]=short_val;
+            }
+            c.set(i, short_val);
+            if(image_min[i]>short_val)
+                    image_min[i]=short_val;
+            if(image_max[i]<short_val)
+                image_max[i]=short_val;
 
+            ++index;
+        }
+        xyz.push_back(c);
+        for(int i = 0; i < dimensions; ++i)
+        {
+            int long_val = round(loc.getLongDim(i)/binning[i]);
+            if(image_min[i]>long_val)
+                    image_min[i]=long_val;
+            if(image_max[i]<long_val)
+                image_max[i]=long_val;
 
-    // image pixel
+            c.set(i, long_val);
+        }
+        xyz.push_back(c);
 
-    // extract each
+    }
+    for ( int i = 0; i < dimensions; ++i)
+    {
+        image_size[i]=image_max[i]+1;
+        qDebug() << "Reconstructor (image size, from input data): " << image_size[i];
+    }
 
-    // blur for each channel
 
 }
 
 
-void Reconstructor::run()
+void Reconstructor::outputTIFF()
 {
-    // extract cols
-
-    //output TIFF
-
-
-
-    outputTIFF("out.tif");
-
-}
-void Reconstructor::convertTo2D()
-{
-
-}
-void Reconstructor::createKernel()
-{
-
-}
-void Reconstructor::convolve(double *kernel)
-{
-
-}
-void Reconstructor::hist_correct()
-{
-
-}
-void Reconstructor::outputTIFF(QString path)
-{
-    qDebug() << "writing TIFF";
     uint16 spp, bpp, photo, res_unit;
 
     spp = 1; /* Samples per pixel */
     //3 == rgb, 4 == alpha channel
     bpp = 8; /* Bits per sample */
     photo = PHOTOMETRIC_MINISBLACK;
-    uint64_t image_width = image_max[0] + 1;
-    uint64_t image_height = image_max[1] + 1;
-    int image_z = image_max[2] + 1;
+
+    qDebug() << "started OutputTIFF";
 
     boost::iostreams::mapped_file_sink file;
     boost::iostreams::mapped_file_params params;
-    params.path = "tmp.file";
-    //params.mode = std::ios::in;
+    params.path = tiff_temp_file;
+
     file.open(params);
 
+    if(!file.is_open())
+    {
+        qDebug() << "no temp file to create OutputTIFF";
+        return;
+    }
     uint8 *array =static_cast<uint8*>((void*)file.data());
 
-    uint64_t sum_pages=0;
+    int sum_pages=0;
     int number_image=0;
     QString current_image;
     int current_page=0;
 
-    out = TIFFOpen(path.toLocal8Bit(), "w");
+    out = TIFFOpen(tiff_out_file.toLocal8Bit(), "w");
     if (!out){return;
          // "Can't open %s for writing\n"
     }
 
-    for (int page = 0; page < image_z; page++)
+    for (int page = 0; page < image_size[2]; page++)
     {
-            qDebug() << "page: " << page;
-            qDebug() << "sum_pages: " << sum_pages;
+            /*qDebug() << "page: " << page;
+            qDebug() << "sum_pages: " << sum_pages;*/
 
-            uint64_t left =  sum_pages * image_width * image_height;
+            uint64_t left =  sum_pages * image_size[0] * image_size[1];
             uint64_t right =  std::numeric_limits<uint32_t>::max();
-            qDebug() << left;
-            qDebug() << right;
+            /*qDebug() << left;
+            qDebug() << right;*/
         if( left > 0.8*right) // 80% of the theoritally allowed max file_size
         {
-            qDebug() << "current_page = 0 ";
+            //qDebug() << "current_page = 0 ";
             current_page=0;
             sum_pages=0;
             number_image++;
-            //TIFFWriteDirectory(out);
+
             TIFFClose(out);
 
-            current_image = path ;
+            current_image = tiff_out_file ;
             current_image.replace(".tif", "");
             current_image += (QString::number(number_image) + ".tif");
 
-            qDebug()<<"TIFF " << number_image << " ready!";
+            //qDebug()<<"TIFF " << number_image << " ready!";
 
             out = TIFFOpen(current_image.toLocal8Bit(), "w");
             if (!out){return;
@@ -560,10 +623,11 @@ void Reconstructor::outputTIFF(QString path)
             }
 
         }
-        if(page%10 == 0)
+        if(page%(image_size[2]/4) == 0)
             qDebug() << "writing page (total): " << page << "  current: " << current_page;
-        TIFFSetField(out, TIFFTAG_IMAGEWIDTH, image_width / spp);
-        TIFFSetField(out, TIFFTAG_IMAGELENGTH, image_height);
+
+        TIFFSetField(out, TIFFTAG_IMAGEWIDTH, image_size[0] / spp);
+        TIFFSetField(out, TIFFTAG_IMAGELENGTH, image_size[1]);
         TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bpp);
         TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, spp);
         TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
@@ -581,10 +645,14 @@ void Reconstructor::outputTIFF(QString path)
         TIFFSetField(out, TIFFTAG_SUBFILETYPE, FILETYPE_PAGE);
 
         /* Set the page number */
-        TIFFSetField(out, TIFFTAG_PAGENUMBER, current_page, image_z);
+        TIFFSetField(out, TIFFTAG_PAGENUMBER, current_page, image_size[2]);
 
-        for (int j = 0; j < image_height; j++)
-            TIFFWriteScanline(out, &array[j * image_width + image_width*image_height*page], j, 0);
+        for (int j = 0; j < image_size[1]; j++)
+            TIFFWriteScanline(out, &array[image_size[0]*(j+image_size[1]*page)], j, 0);
+
+                //TIFFWriteScanline(out, &array[j * image_width + image_width*image_height*page], j, 0);
+            //
+
 
         TIFFWriteDirectory(out);
         sum_pages++;

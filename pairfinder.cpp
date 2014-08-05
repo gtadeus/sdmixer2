@@ -4,20 +4,24 @@
 void PairFinder::doWork() {
     // allocate resources using new here
     qDebug()<<"started file loading in new thread";
-    //loadInputFile();
+    loadInputFile();
     qDebug()<<"searching for pairs...";
 
-    //FindPairs();
+    FindPairs();
 
-    Reconstructor r(sdm);
-    //qDebug()<<"set min max";
+    Reconstructor r(sdm, output_file);
+    qDebug()<<"set min max";
     r.setMinMax(min_x, max_x, min_y, max_y, min_z, max_z);
 
-    //r.XYZfromFilter(output_file);
-    std::vector<PairFinder::Localization>().swap(output_file);
-    r.getMinMax();
+    //r.XYZfromFilter();
+    //std::vector<PairFinder::Localization>().swap(output_file);
+    //r.getMinMax();
     r.setArray();
-    //r.outputTIFF("out.tif");
+    r.setKernel();
+
+    //r.Convolution();
+    r.map8bit();
+    r.outputTIFF();
 
     sdm->setStartDemixingButtonEnabled(true);
     emit finished();
@@ -138,15 +142,16 @@ void PairFinder::getHeader()
                 }
                 else
                 {
-                    min_z = removeCharacters(e.attribute("min")," m").toDouble();
-                    max_z = removeCharacters(e.attribute("max")," m").toDouble();
+                    min_x = removeCharacters(e.attribute("min")," m").toDouble();
+                    max_x = removeCharacters(e.attribute("max")," m").toDouble();
                 }
             }
         }
     }
-    /*qDebug() << min_x << "  " << max_x;
+    qDebug() << "max Values from config";
+    qDebug() << min_x << "  " << max_x;
     qDebug() << min_y << "  " << max_y;
-    qDebug() << min_z << "  " << max_z;*/
+    qDebug() << min_z << "  " << max_z;
 }
 
 void PairFinder::FindPairs(int last_frame)

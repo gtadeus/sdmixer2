@@ -48,13 +48,13 @@ public:
     bool getRunReconstructor(){return runPairFinder;}
     bool getForce2D(){return force2D;}
 
-    int getOffset(int dim){
+    double getOffset(int dim){
         if(dim < max_dims)
             return offset[dim];
         else
             return 0;
     }
-    int getEpsilon(int dim){
+    double getEpsilon(int dim){
         if(dim < max_dims)
             return epsilon[dim];
         else

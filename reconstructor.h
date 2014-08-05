@@ -30,6 +30,15 @@ public:
                 return z;
             return 0;
         }
+        void set(int dim, int val)
+        {
+            if (dim == 0)
+                x=val;
+            if (dim == 1)
+                y=val;
+            if (dim == 2)
+                z=val;
+        }
 
     };
     void Convolution();
@@ -40,33 +49,35 @@ public:
 
     struct Kernel {
         int k=1;
-        float sigma_xy;
-        float sigma_z;
+        float sigma_xy=2;
+        float sigma_z=2;
         int size=2*k+1;
         int size_z=1;
         float* data;
-        bool make3D=false;
+        bool make3D=true;
     };
 
-    Reconstructor(sdmixer *s);
+    Reconstructor(sdmixer *s, std::vector<PairFinder::Localization> &PFinput_file);
     void run();
-    void convertTo2D();
     void createKernel();
-    void zeroPad();
 
-    void convolve(double *kernel);
     void hist_correct();
     void getIndexFromXYZ();
-    void XYZfromFilter(
-            std::vector<PairFinder::Localization>& data);
+    void XYZfromFilter();
 
-    void outputTIFF(QString path);
+    void map8bit();
+    void setOutputPath();
+    void outputTIFF();
     void setMinMax(double min_x, double max_x,
                    double min_y, double max_y,
               double min_z, double max_z);
 
 
     uint64_t linearIndex(Coordinates c);
+    uint64_t linearIndex3DFFT( int i, int j, int k, int z_fftw, int h_fftw);
+    uint64_t linearIndex2DFFT( int i, int j, int h_fftw);
+    uint64_t linearIndexTIFF( int i, int j, int k, int img_sizeX, int img_sizeY);
+
     void getMinMax();
     void setArray();
 
@@ -77,45 +88,41 @@ private:
 
     std::vector<Coordinates> xyz;
 
-    //uint16 page;
+
     float xres = 100;
     float yres = 100;
 
     TIFF *out;
 
-    uint64_t maxPixels=1;
-
-    int xy_binning=200;
-    int z_binning=200;
-
     int hist_correct_value;
     int hist_threshold;
 
-    //float *kernel;
-    int kernel_dim;
 
     int dimensions=3;
 
-    int min_x, min_y, min_z;
-    int max_x, max_y, max_z;
+    int binning[3]={0};
 
+    // min / max, first initialized from data
+    // may then be overwritten by setMinMax with header data
     int image_min[3]={0};
     int image_max[3]={0};
 
-    double min_val[3]={0};
-    double max_val[3]={0};
+    uint64_t image_size[3]={0};  // widhtx height x depth
 
-    char * tmpfile = "tmp.file";
+    uint64_t maxPixels=1; // product for each i:dim   (image_size[i]+1)
 
-    char * conv_temp = "convn.temp";
-    char *pad_img_file;
-    char *pad_filter;
-    char *fft_img;
-    char *fft_filter;
-    char *pad_img;
-    char *out_img;
 
-    //uint8* data;
+    char *tiff_temp_file = "tiff_uint8.tmp";
+    //char *tiff_uint8_file ="tiff_uint8.tmp";
+    char *fft_src_file = "fft_src.tmp";
+    char *fft_krnl_file = "fft_kernel.tmp";
+
+
+    int dbl_image_min=0;
+    int dbl_image_max=0;
+
+    QString tiff_out_file=QString("out.tif");
+
 
 };
 

@@ -40,6 +40,7 @@ public:
     //Reconstructor
     void setXYBinning(double val){this->xyBinning=val;}
     void setZBinning(double val){this->zBinning=val;}
+    void setRunConvolution(bool val){this->runConvolution=val;}
 
 
     int getPixelSizeNM(){return pixelSizeNM;}
@@ -68,6 +69,7 @@ public:
 
     double getXYbinning(){return xyBinning;}
     double getZbinning(){return zBinning;}
+    bool getRunConvolution() { return runConvolution;}
 
 private:
 
@@ -90,6 +92,8 @@ private:
 
     double xyBinning=0;
     double zBinning=0;
+
+    bool runConvolution;
 
     std::vector<QString> InputFiles;
     std::vector<QString> FilterFiles;

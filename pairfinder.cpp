@@ -1,16 +1,27 @@
 #include "pairfinder.h"
-#include "reconstructor.h"
+//#include "reconstructor.h"
+#include "sdmixer.h"
 
 void PairFinder::doWork() {
     // allocate resources using new here
     qDebug()<<"started file loading in new thread";
+
     loadInputFile();
+    if(canceled)
+    {
+        sdm->setStartDemixingButtonEnabled(true);
+        emit finished();
+        return;
+    }
     qDebug()<<"searching for pairs...";
 
     FindPairs();
+    //sdm->setStartDemixingButtonEnabled(true);
+    sdm->setPF_min_maxValues(min_maxValues);
+    emit finished();
+    sdm->nextStage();
 
-    Reconstructor r(sdm, output_file);
-    qDebug()<<"set min max";
+    /*Reconstructor r(sdm, output_file);
     r.setMinMax(min_x, max_x, min_y, max_y, min_z, max_z);
 
     //r.XYZfromFilter();
@@ -21,10 +32,9 @@ void PairFinder::doWork() {
 
     //r.Convolution();
     r.map8bit();
-    r.outputTIFF();
+    r.outputTIFF();*/
 
-    sdm->setStartDemixingButtonEnabled(true);
-    emit finished();
+
 }
 void PairFinder::Tokenize(const std::string& str,
                       std::vector<std::string>& tokens,
@@ -48,7 +58,7 @@ void PairFinder::Tokenize(const std::string& str,
 
 void PairFinder::loadInputFile()
 {
-    sdm->writeToConsole("loading file...");
+    sdmixer::log(sdm, "loading file...");
     QFile f(file);
     f.open(QIODevice::ReadOnly| QIODevice::Text);
 
@@ -72,7 +82,7 @@ void PairFinder::loadInputFile()
     qDebug() << "total: " << input.size() ;
     rawDataRows=input.size()/rawDataCols;
     qDebug() <<  "rows : " << rawDataRows ;
-    qDebug() <<  input[0] <<"  " << input[input.size()-1] ;
+    qDebug() <<  "firstelement: " << input[0] <<"  last element: " << input[input.size()-1] ;
 
 }
 
@@ -132,26 +142,26 @@ void PairFinder::getHeader()
 
                 if(e.attribute("identifier").contains("1"))
                 {
-                    min_y = removeCharacters(e.attribute("min")," m").toDouble();
-                    max_y = removeCharacters(e.attribute("max")," m").toDouble();
+                    min_maxValues.min_y = removeCharacters(e.attribute("min")," m").toDouble();
+                    min_maxValues.max_y = removeCharacters(e.attribute("max")," m").toDouble();
                 }
                 else if(e.attribute("identifier").contains("2"))
                 {
-                    min_z = removeCharacters(e.attribute("min")," m").toDouble();
-                    max_z = removeCharacters(e.attribute("max")," m").toDouble();
+                    min_maxValues.min_z = removeCharacters(e.attribute("min")," m").toDouble();
+                    min_maxValues.max_z = removeCharacters(e.attribute("max")," m").toDouble();
                 }
                 else
                 {
-                    min_x = removeCharacters(e.attribute("min")," m").toDouble();
-                    max_x = removeCharacters(e.attribute("max")," m").toDouble();
+                    min_maxValues.min_x = removeCharacters(e.attribute("min")," m").toDouble();
+                    min_maxValues.max_x = removeCharacters(e.attribute("max")," m").toDouble();
                 }
             }
         }
     }
     qDebug() << "max Values from config";
-    qDebug() << min_x << "  " << max_x;
-    qDebug() << min_y << "  " << max_y;
-    qDebug() << min_z << "  " << max_z;
+    qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
+    qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
+    qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;
 }
 
 void PairFinder::FindPairs(int last_frame)
@@ -233,7 +243,7 @@ void PairFinder::FindPairs(int last_frame)
                         loc.zLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+zCol];
                     loc.LongIntensity=input[(curr_row+(!factorShort)*increment)*rawDataCols+FrameColumn];
 
-                    output_file.push_back(loc);
+                    sdm->pushBackLocalization(loc);
                     grouped_rows.push_back(curr_row);
                     grouped_rows.push_back(curr_row+increment);
 
@@ -256,6 +266,8 @@ void PairFinder::FindPairs(int last_frame)
     std::sort ( grouped_rows.begin(), grouped_rows.end() );
     multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
 
+    std::ostringstream os; os << "found " << numpairs << " pairs." ;
+    sdmixer::log(sdm, os.str());
     qDebug() << "found " << numpairs << " pairs." ;
 }
 

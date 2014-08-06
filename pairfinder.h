@@ -17,8 +17,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "sdmixer.h"
-
+//#include "sdmixer.h"
+class sdmixer;
 
 
 class PairFinder : public QObject
@@ -55,6 +55,12 @@ public:
             return 0;
         }
     };
+    struct min_max {
+        double min_x=0, max_x=0;
+        double min_y=0, max_y=0;
+        double min_z=0, max_z=0;
+
+    };
 
     PairFinder(sdmixer *s, QString f);
     void getHeader();
@@ -76,10 +82,16 @@ public:
 
     int getNrOfDifferentFrames() { return NrOfDifferentFrames; }
     int getMultipleCounter() { return multiple_counter; }
+    min_max getMinMaxValues() { return min_maxValues; }
 
 
 
     void loadInputFile();
+    void stop(){
+        canceled=true;
+    }
+
+    std::vector<Localization> output_file;
 
 signals:
     void finished();
@@ -88,6 +100,8 @@ public slots:
     void doWork();
 
 private:
+    bool canceled=false;
+
     sdmixer *sdm;
     QString file;
     std::vector<double> input;
@@ -98,15 +112,9 @@ private:
 
     int dimensions=0;
     double Offset[3]={0};
-    double Epsilon[3]={0};
+    double Epsilon[3]={0}; 
 
-
-    std::vector<Localization> output_file;
-
-    double min_x=0, max_x=0;
-    double min_y=0, max_y=0;
-    double min_z=0, max_z=0;
-
+    min_max min_maxValues;
 
     int numpairs = 0;
 

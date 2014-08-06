@@ -12,6 +12,9 @@
 #include <QTextEdit>
 #include <QTextStream>
 #include <ctime>
+#include "pairfinder.h"
+#include "reconstructor.h"
+class Reconstructor;
 
 class Settings;
 
@@ -30,6 +33,41 @@ public:
         int range=0;
         int subset=0;
     };
+    struct log {
+        log(sdmixer *s) {
+            this->sdm = s;
+        }
+        log(sdmixer *s, std::string os) {
+            this->sdm = s;
+            this->msg = os;
+        }
+
+        ~log() {
+            /*QString qstr = sdm->timestamp();
+            qstr.append(" : ");
+            qstr.append(QString::fromStdString(m_SS.str()));
+
+            sdm->writeToConsole(qstr);*/
+            QString qstr = sdm->timestamp();
+            qstr.append(" : ");
+            qstr.append(QString::fromStdString(msg));
+            sdm->writeToConsole(qstr);
+            qDebug() << qstr;
+        }
+
+    public:
+        // accepts just about anything
+        template<class T>
+        log &operator<<(const T &x) {
+            m_SS << x;
+            return *this;
+        }
+
+    private:
+        sdmixer *sdm;
+        std::ostringstream m_SS;
+        std::string msg;
+    };
 
     explicit sdmixer(QWidget *parent = 0);
     ~sdmixer();
@@ -41,8 +79,10 @@ public:
     bool getSettingsFromUI();
     void setSettingsToUI(Settings s);
     bool prepareForRun();
+    void cleanUp();
 
     void setStartDemixingButtonEnabled(bool val);
+    void setCancelRunButtonEnabled(bool val);
 
 
     bool getRunPairfinder();
@@ -60,6 +100,19 @@ public:
     double getPrecision();
     double getReconstructor_xyBinning();
     double getReconstructor_zBinning();
+    bool getRunConvolution();
+    void pushBackLocalization(PairFinder::Localization l)
+    {
+        pf_output.push_back(l);
+    }
+
+    void setPF_min_maxValues(PairFinder::min_max m){MinMaxValues=m;}
+    PairFinder::min_max getPF_min_maxValues(){return MinMaxValues;}
+
+    void nextStage();
+
+    int current_stage=0;
+    std::vector<QString>::size_type current_file = 0;
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event);
@@ -82,14 +135,20 @@ private slots:
 
     void on_addFilterButton_clicked();
 
+    void on_pushButton_CancelRun_clicked();
+
 private:
 
     std::vector<QString> InputFiles;
+    std::vector<PairFinder::Localization> pf_output;
+
     bool runPairFinder=false;
     bool runFilter=false;
     bool runReconstructor=false;
     bool force2D=false;
     int pixelSizeNM=0;
+
+
 
     static const int max_dims = 3;
     double offset[max_dims]={0};
@@ -102,6 +161,8 @@ private:
     double xyBinning=0;
     double zBinning=0;
 
+    bool runConvolution;
+
 
     std::vector<QString> FilterFiles;
 
@@ -109,6 +170,14 @@ private:
     QListWidget *listWidgetInputFiles;
     QListWidget *listWidgetFilters;
     QTextEdit *console;
+
+    PairFinder::min_max MinMaxValues;
+
+    QThread *reconstructor_thread;
+    Reconstructor *r;
+
+
 };
+
 
 #endif // SDMIXER_H

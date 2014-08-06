@@ -59,7 +59,7 @@
         <x>460</x>
         <y>10</y>
         <width>160</width>
-        <height>271</height>
+        <height>277</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -180,6 +180,16 @@
         <widget class="QPushButton" name="startDemixing">
          <property name="text">
           <string>Start demixing!</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_CancelRun">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="text">
+          <string>Cancel Run</string>
          </property>
         </widget>
        </item>
@@ -757,7 +767,7 @@
       </property>
       <layout class="QFormLayout" name="formLayout_2">
        <item row="0" column="0" colspan="2">
-        <widget class="QCheckBox" name="checkBox_7">
+        <widget class="QCheckBox" name="checkBox_runConvolution">
          <property name="text">
           <string>enable Gaussian Blur</string>
          </property>
@@ -822,7 +832,7 @@
         </widget>
        </item>
       </layout>
-      <zorder>checkBox_7</zorder>
+      <zorder>checkBox_runConvolution</zorder>
       <zorder>comboBox_2</zorder>
       <zorder>label_11</zorder>
       <zorder>label_13</zorder>

@@ -1,6 +1,6 @@
 #include "sdmixer.h"
-#include "pairfinder.h"
-#include "reconstructor.h"
+
+//#include "reconstructor.h"
 #include "filter.h"
 #include "ui_sdmixer.h"
 #include "settings.h"
@@ -30,13 +30,14 @@ sdmixer::sdmixer(QWidget *parent) :
 
     ui->setupUi(this);
     setAcceptDrops(true);
+    ui->pushButton_CancelRun->setVisible(false);
 
     listWidgetInputFiles = ui->listWidget_InputFiles;
     listWidgetFilters = ui->listWidget_FilterFiles;
     console = ui->textConsole;
     console->acceptRichText();
-
-    console->append(timestamp() + " : Started sdmixer");
+    log(this, "Started sdmixer");
+    //console->append(timestamp() + " : Started sdmixer");
     //console->append(error_msg("some error msg"));
 
     QFile file(DEFAULT_SETTINGS);
@@ -150,19 +151,22 @@ bool sdmixer::getSettingsFromUI()
     }
 
 
-    maxIntensityLong =  QString(ui->lineEdit_maxIntLong->text()).toDouble();
-    maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
-    precision = QString(ui->lineEdit_precision->text()).toDouble();
-
-    xyBinning = QString(ui->lineEdit_xyBinning->text()).toDouble();
-    zBinning = QString(ui->lineEdit_zBinning->text()).toDouble();
-
+    // Filter
     FilterFiles.clear();
     for(int i = 0; i < ui->listWidget_FilterFiles->count(); ++i)
     {
         QListWidgetItem* item = ui->listWidget_FilterFiles->item(i);
         FilterFiles.push_back(item->text());
     }
+    maxIntensityLong =  QString(ui->lineEdit_maxIntLong->text()).toDouble();
+    maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
+    precision = QString(ui->lineEdit_precision->text()).toDouble();
+
+    // Reconstructor
+    xyBinning = QString(ui->lineEdit_xyBinning->text()).toDouble();
+    zBinning = QString(ui->lineEdit_zBinning->text()).toDouble();
+    runConvolution = ui->checkBox_runConvolution->isChecked();
+
 
     return true;
 
@@ -190,17 +194,24 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_FishingRange->setText(QString::number(f.range));
     ui->lineEdit_FishingSubset->setText(QString::number(f.subset));
 
+    // Filter
     ui->lineEdit_maxIntLong->setText(QString::number(s.getMaxIntLong()));
     ui->lineEdit_maxIntShort->setText(QString::number(s.getMaxIntShort()));
     ui->lineEdit_precision->setText(QString::number(s.getPrecision()));
 
+    //Reconstructor
     ui->lineEdit_xyBinning->setText(QString::number(s.getXYbinning()));
     ui->lineEdit_zBinning->setText(QString::number(s.getZbinning()));
+    ui->checkBox_runConvolution->setChecked(s.getRunConvolution());
 }
 
 void sdmixer::setStartDemixingButtonEnabled(bool val)
 {
     ui->startDemixing->setEnabled(val);
+}
+void sdmixer::setCancelRunButtonEnabled(bool val)
+{
+    ui->pushButton_CancelRun->setVisible(val);
 }
 
 
@@ -224,6 +235,7 @@ double sdmixer::getMaxIntLong(){return this->maxIntensityLong;}
 double sdmixer::getPrecision(){return this->precision;}
 double sdmixer::getReconstructor_xyBinning(){return this->xyBinning;}
 double sdmixer::getReconstructor_zBinning(){return this->zBinning;}
+bool sdmixer::getRunConvolution() { return this->runConvolution; }
 
 
 
@@ -264,21 +276,16 @@ void sdmixer::on_addFileButton_clicked(){
     }
 }
 
-
-void sdmixer::on_startDemixing_clicked()
+void sdmixer::nextStage()
 {
-    getSettingsFromUI();
 
-    /*if(InputFiles.empty())
+    ++current_stage;
+    qDebug() << "current_stage:" << current_stage;
+    if(current_stage == 1)
     {
-        QString err = error_msg("no input files selected");
-        writeToConsole(err);
-        return;
-    }*/
-   // for (auto &i : InputFiles)
-    {
-        QThread* thread = new QThread;
-        PairFinder* p = new PairFinder(this, InputFiles[0]);
+        QThread *thread = new QThread;
+        PairFinder *p = new PairFinder(this, InputFiles[current_file]);
+        //PairFinder p(this, InputFiles[current_file]);
 
         p->moveToThread(thread);
         connect(thread, SIGNAL(started()), p, SLOT(doWork()));
@@ -286,13 +293,77 @@ void sdmixer::on_startDemixing_clicked()
         connect(p, SIGNAL(finished()), p, SLOT(deleteLater()));
         connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         thread->start();
-
-        setStartDemixingButtonEnabled(false);
-
-
-        qDebug() << p->getDimensions();
+        return;
 
     }
+    if (current_stage == 2)
+    {
+        //Reconstructor r(this, pf_output);
+
+        reconstructor_thread = new QThread;
+        r = new Reconstructor(this, pf_output);
+
+        /*r->moveToThread(reconstructor_thread);
+        connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
+        connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
+        connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
+        connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
+        reconstructor_thread->start();*/
+        r->moveToThread(reconstructor_thread);
+        connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
+        connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
+        connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
+        connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
+        reconstructor_thread->start();
+        return;
+
+    }
+    if (current_stage >= 3)
+    {
+        current_stage=0;
+
+        /*this->current_file++;
+        if( current_file >= this->getInputFiles().size() )
+        {
+            qDebug() << current_file;
+            this->current_stage=0;
+            this->current_file = 0;
+            sdmixer::log(this, "demixing finished!");
+            this->setStartDemixingButtonEnabled(true);
+            this->setCancelRunButtonEnabled(false);
+        }
+        else
+        {
+            this->current_stage = 0;
+            qDebug() << "next stage";
+            this->nextStage();
+        }*/
+
+        return;
+
+    }
+}
+void sdmixer::cleanUp()
+{
+    //reconstructor_thread->quit();
+    //ui->pushButton_CancelRun->setVisible(false);
+
+}
+
+void sdmixer::on_startDemixing_clicked()
+{
+    getSettingsFromUI();
+
+    if(InputFiles.empty())
+    {
+        QString err = error_msg("no input files selected");
+        writeToConsole(err);
+        return;
+    }
+    ui->pushButton_CancelRun->setVisible(true);
+    setStartDemixingButtonEnabled(false);
+
+    nextStage();
 }
 
 void sdmixer::on_actionAbout_sdmixer_triggered()
@@ -359,4 +430,10 @@ void sdmixer::on_addFilterButton_clicked()
         }
     }
 
+}
+
+void sdmixer::on_pushButton_CancelRun_clicked()
+{
+    ui->pushButton_CancelRun->setVisible(false);
+    setStartDemixingButtonEnabled(true);
 }

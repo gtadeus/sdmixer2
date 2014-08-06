@@ -8,10 +8,16 @@
 //#include <complex>
 #include <fftw3.h>
 #include "sdmixer.h"
-#include "pairfinder.h"
+//#include "pairfinder.h"
+#include <QThread>
+#include <QEventLoop>
 
-class Reconstructor
+class sdmixer;
+class PairFinder;
+
+class Reconstructor : public QObject
 {
+    Q_OBJECT
 public:
     struct Coordinates
     {
@@ -68,9 +74,7 @@ public:
     void map8bit();
     void setOutputPath();
     void outputTIFF();
-    void setMinMax(double min_x, double max_x,
-                   double min_y, double max_y,
-              double min_z, double max_z);
+    void setMinMax(PairFinder::min_max m);
 
 
     uint64_t linearIndex(Coordinates c);
@@ -80,6 +84,13 @@ public:
 
     void getMinMax();
     void setArray();
+
+signals:
+    void finished();
+    //void started();
+
+public slots:
+    void doWork();
 
 private:
 
@@ -122,6 +133,7 @@ private:
     int dbl_image_max=0;
 
     QString tiff_out_file=QString("out.tif");
+
 
 
 };

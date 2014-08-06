@@ -1,9 +1,25 @@
 #include "reconstructor.h"
 
+void Reconstructor::doWork()
+{
+    //emit started();
+    setMinMax(sdm->getPF_min_maxValues());
+    setKernel();
+
+    setArray();
+    if(sdm->getRunConvolution())
+        Convolution();
+    map8bit();
+    outputTIFF();
+
+    emit finished();
+    sdm->nextStage();
+}
 
 void Reconstructor::setArray()
 {
-    qDebug() << "start set array";
+
+    sdmixer::log(sdm, "start set array");
 
     for(int i = 0; i < dimensions; ++i)
     {
@@ -24,8 +40,6 @@ void Reconstructor::setArray()
 
     uint8 *array =static_cast<uint8*>((void*)file.data());
 
-    //data[0] = 12;
-    //array = new uint8[maxPixels];
     if (file.is_open())
     {
     qDebug() << "initializing... max_pixel = " << maxPixels;
@@ -34,36 +48,37 @@ void Reconstructor::setArray()
            array[i]=0;
        }
 
-
-       //qDebug() << array[maxPixels];
-       qDebug() << "populating...";
+       qDebug() << "populating array...";
         uint64_t temp_max =0;
        for(std::vector<int>::size_type i = 0; i != xyz.size(); i++)
        {
-           //qDebug() << linearIndex(xyz[i]) << " : " << xyz[i].x << " " << xyz[i].y << " " << xyz[i].z;
-           uint64_t lin_index = linearIndex(xyz[i]);
-           if (i == 0)
-               temp_max = lin_index;
-           else
-               if(lin_index > temp_max)
-                   temp_max = lin_index;
-            array[lin_index]+=1;
-       }
-       qDebug() << temp_max;
-        qDebug() << "ready!";
+            uint64_t lin_index = linearIndex(xyz[i]);
 
-       /*for( auto i : xyz)
-       {
-           //qDebug() << linearIndex(i) << " : " << i.x << " " << i.y << " " << i.z;
-           array+=linearIndex(i);
-           *array = 1;
-           array=start;
-       }*/
+            array[lin_index]+=1;
+            if (i == 0)
+            {
+                temp_max = lin_index;
+                dbl_image_max=array[lin_index];
+                dbl_image_min=array[lin_index];
+            }
+            else
+            {
+                if(lin_index > temp_max)
+                    temp_max = lin_index;
+                if(dbl_image_max<array[lin_index])
+                    dbl_image_max=array[lin_index];
+                if(dbl_image_min>array[lin_index])
+                    dbl_image_min=array[lin_index];
+            }
+       }
+       qDebug() << "max array index from data: " << temp_max;
+       qDebug() << " array init ready!";
+
     }
     file.close();
-
-
     qDebug() << "finish array";
+
+    sdmixer::log(sdm, "finish array");
 
 }
 
@@ -82,6 +97,7 @@ int Reconstructor::pow2roundup (int x)
 }
 void Reconstructor::Convolution()
 {
+    sdmixer::log(sdm, "started convolution");
     int img_sizeX = image_max[0] + 1;
     int img_sizeY = image_max[1] + 1;
     int img_sizeZ = image_max[2] + 1;
@@ -277,11 +293,13 @@ void Reconstructor::Convolution()
     fftw_cleanup_threads();
 
     qDebug() << "convolution ready!";
+    sdmixer::log(sdm, "convolution ready!");
 
 }
 void Reconstructor::map8bit()
 {
     qDebug() << "map8 bit";
+    sdmixer::log(sdm, "start map8 bit");
     boost::iostreams::mapped_file_sink image;
     boost::iostreams::mapped_file_params params;
     params.path = tiff_temp_file;
@@ -414,22 +432,20 @@ uint64_t Reconstructor::linearIndexTIFF( int i, int j, int k, int img_sizeX, int
 }
 
 
-void Reconstructor::setMinMax(double min_x, double max_x,
-                              double min_y, double max_y,
-                              double min_z, double max_z)
+void Reconstructor::setMinMax(PairFinder::min_max m)
 {
     // min max, convert from m to nm
     double min_val[3]={0};
     double max_val[3]={0};
 
-    min_val[0]=min_x * 1e9;
-    max_val[0]=max_x * 1e9;
+    min_val[0]=m.min_x * 1e9;
+    max_val[0]=m.max_x * 1e9;
 
-    min_val[1]=min_y * 1e9;
-    max_val[1]=max_y * 1e9;
+    min_val[1]=m.min_y * 1e9;
+    max_val[1]=m.max_y * 1e9;
 
-    min_val[2]=min_z * 1e9;
-    max_val[2]=max_z * 1e9;
+    min_val[2]=m.min_z * 1e9;
+    max_val[2]=m.max_z * 1e9;
 
     for (int i = 0; i < dimensions; ++i)
     {
@@ -556,6 +572,7 @@ Reconstructor::Reconstructor(sdmixer *s, std::vector<PairFinder::Localization>& 
     }
 
 
+
 }
 
 
@@ -569,6 +586,8 @@ void Reconstructor::outputTIFF()
     photo = PHOTOMETRIC_MINISBLACK;
 
     qDebug() << "started OutputTIFF";
+    sdmixer::log(sdm, "started OutputTIFF");
+
 
     boost::iostreams::mapped_file_sink file;
     boost::iostreams::mapped_file_params params;
@@ -661,5 +680,6 @@ void Reconstructor::outputTIFF()
     TIFFClose(out);
     file.close();
     qDebug()<<"TIFF out ready!!";
+    sdmixer::log(sdm, "TIFF out ready!!");
 
 }

@@ -130,7 +130,7 @@ void Settings::initXML(){
     appendChildNode(reconstructor, "xyBinning", xyBinning);
     appendChildNode(reconstructor, "zBinning", zBinning);
     appendChildNode(reconstructor, "nonLinearHistEqual", false);
-    appendChildNode(reconstructor, "performConvolution", false);
+    appendChildNode(reconstructor, "runConvolution", runConvolution);
     appendChildNode(reconstructor, "FWHM_xy", 0);
     appendChildNode(reconstructor, "FWHM_z", 0);
 
@@ -297,9 +297,9 @@ void Settings::loadFromFile(QString file){
                     {
 
                     }
-                    if (f.attribute("name") == "performConvolution")
+                    if (f.attribute("name") == "runConvolution")
                     {
-
+                        runConvolution = f.attribute("number").toInt();
                     }
                     if (f.attribute("name") == "FWHM_xy")
                     {

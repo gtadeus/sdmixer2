@@ -2,19 +2,22 @@
 #include "pairfinder.h"
 #include <QDebug>
 
-Filter::Filter()
+Filter::Filter(sdmixer *s)
 {
-    // get input file
-    // load filters
-    // scale down intensities
-    // foreach filter check if localization is inside filter
-    // --> write filter number
+    qDebug() << "inititalizing Filter";
+    this->sdm = s;
 
+}
+
+void Filter::doWork()
+{
+    qDebug() << "starting Filter in new Thread";
+
+    emit finished();
 }
 
 void Filter::loadFilterImage(QString path)
 {
-    //QImgFilters[0].load(path);
 
     QImage img(path);
     int arr[img.height()][img.width()];
@@ -22,7 +25,6 @@ void Filter::loadFilterImage(QString path)
 
     if ( !img.isNull())
     {
-
         for(int row = 0; row < img.height(); ++row)
         {
             std::vector<int> row_vec;

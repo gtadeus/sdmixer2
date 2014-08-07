@@ -27,7 +27,6 @@ sdmixer::sdmixer(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::sdmixer)
 {
-
     ui->setupUi(this);
     setAcceptDrops(true);
     ui->pushButton_CancelRun->setVisible(false);
@@ -35,13 +34,20 @@ sdmixer::sdmixer(QWidget *parent) :
     listWidgetInputFiles = ui->listWidget_InputFiles;
     connect(listWidgetInputFiles, SIGNAL(itemClicked(QListWidgetItem*)),
             this, SLOT(InputFileClicked(QListWidgetItem*)));
+    connect(ui->comboBox_CameraOrientation, SIGNAL(highlighted(QString)),
+            this, SLOT(CameraOrientationChanged(QString)));
+    connect(ui->comboBox_ShortChannelPosition, SIGNAL(highlighted(QString)),
+                    this, SLOT(ShortChannelPositionChanged(QString)));
+    connect(ui->comboBox_FilterOrientation, SIGNAL(highlighted(QString)),
+            this, SLOT(FilterOrientatioChanged(QString)));
+
+    UpdateShortPositionComboBox(ui->comboBox_CameraOrientation->itemText(0));
 
     listWidgetFilters = ui->listWidget_FilterFiles;
     console = ui->textConsole;
     console->acceptRichText();
     log(this, "Started sdmixer");
-    //console->append(timestamp() + " : Started sdmixer");
-    //console->append(error_msg("some error msg"));
+
 
     QFile file(DEFAULT_SETTINGS);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -58,6 +64,32 @@ sdmixer::sdmixer(QWidget *parent) :
     }
 
 }
+void sdmixer::UpdateShortPositionComboBox(QString str)
+{
+    //if(str.compare(ui->comboBox_CameraOrientation->currentText()))
+    {
+        ui->comboBox_ShortChannelPosition->clear();
+        if(!str.compare("Left-Right"))
+        {
+            ui->comboBox_ShortChannelPosition->addItem("Left");
+            ui->comboBox_ShortChannelPosition->addItem("Right");
+            ui->comboBox_ShortChannelPosition->setCurrentIndex(0);
+        }
+        else
+        {
+            ui->comboBox_ShortChannelPosition->addItem("Top");
+            ui->comboBox_ShortChannelPosition->addItem("Bottom");
+            ui->comboBox_ShortChannelPosition->setCurrentIndex(0);
+        }
+    }
+}
+
+void sdmixer::CameraOrientationChanged(QString str)
+{
+    UpdateShortPositionComboBox(str);
+}
+
+
 void sdmixer::InputFileClicked(QListWidgetItem *item)
 {
     if(!item)
@@ -166,6 +198,8 @@ bool sdmixer::getSettingsFromUI()
 
     force2D = ui->checkBox_force2D->isChecked();
 
+    output_directory = ui->lineEdit_outputDirectory->text();
+
     pixelSizeNM = QString(ui->lineEdit_pixelSizeNM->text()).toInt();
 
     QString temp;
@@ -204,13 +238,21 @@ bool sdmixer::getSettingsFromUI()
     }
 
     fishingSettings.run = ui->checkBox_runFishing->isChecked() ;
-    if (fishingSettings.run)
-    {
-        fishingSettings.increment = QString(ui->lineEdit_FishingIncrement->text()).toInt();
-        fishingSettings.range = QString(ui->lineEdit_FishingRange->text()).toInt();
-        fishingSettings.subset = QString(ui->lineEdit_FishingSubset->text()).toInt();
-    }
+    fishingSettings.increment = QString(ui->lineEdit_FishingIncrement->text()).toDouble();
+    fishingSettings.range = QString(ui->lineEdit_FishingRange->text()).toInt();
+    fishingSettings.subset = QString(ui->lineEdit_FishingSubset->text()).toInt();
+    fishingSettings.unit = ui->comboBox_fishingIncrement->currentText();
 
+
+    offsetUnits.xOffset = ui->comboBox_xOffset->currentText();
+    offsetUnits.yOffset = ui->comboBox_yOffset->currentText();
+    offsetUnits.zOffset = ui->comboBox_zOffset->currentText();
+
+    offsetUnits.xEpsilon = ui->comboBox_xEpsilon->currentText();
+    offsetUnits.yEpsilon = ui->comboBox_yEpsilon->currentText();
+    offsetUnits.zEpsilon = ui->comboBox_zEpsilon->currentText();
+    CameraOrientation = ui->comboBox_CameraOrientation->currentText();
+    ShortChannelPosition = ui->comboBox_ShortChannelPosition->currentText();
 
     // Filter
     FilterFiles.clear();
@@ -222,17 +264,36 @@ bool sdmixer::getSettingsFromUI()
     maxIntensityLong =  QString(ui->lineEdit_maxIntLong->text()).toDouble();
     maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
     precision = QString(ui->lineEdit_precision->text()).toDouble();
+    FilterOrientation = ui->comboBox_FilterOrientation->currentText();
+
 
     // Reconstructor
     xyBinning = QString(ui->lineEdit_xyBinning->text()).toDouble();
     zBinning = QString(ui->lineEdit_zBinning->text()).toDouble();
     runConvolution = ui->checkBox_runConvolution->isChecked();
+    nonLinearHistogramEqual = ui->checkBox_HistEq->isChecked();
+    histeqCoefficient = QString(ui->lineEdit_CorrectionCoefficient->text()).toDouble();
+    Threshold = QString(ui->lineEdit_Threshold->text()).toDouble();
+    sqrtCummulation = ui->checkBox_sqrtCum->isChecked();
+
+    LZWCompression = ui->checkBox_LZWCompression->isChecked();
+    ResliceZ = ui->checkBox_scliceZ->isChecked();
+    startRescliceZ = QString(ui->lineEdit_startSliceZ->text()).toInt();
+    endRescliceZ = QString(ui->lineEdit_endSliceZ->text()).toInt();
 
 
     return true;
 
 }
 void sdmixer::setSettingsToUI(Settings s){
+
+    // Session & Pairfinder
+    std::vector<QString> vec = s.getInputFiles();
+    for( auto i : vec)
+    {
+        insertItem(i, listWidgetInputFiles);
+    }
+    ui->lineEdit_outputDirectory->setText(s.getOutputDirectory());
     ui->lineEdit_pixelSizeNM->setText(QString::number(s.getPixelSizeNM()));
     ui->checkBox_runPairFinder->setChecked(s.getRunPairFinder());
     ui->checkBox_runFilter->setChecked(s.getRunFilter());
@@ -241,12 +302,18 @@ void sdmixer::setSettingsToUI(Settings s){
 
 
     ui->lineEdit_xOffset->setText(QString::number(s.getOffset(0)));
+    ui->comboBox_xOffset->setCurrentText(s.getOffsetUnits().xOffset);
     ui->lineEdit_yOffset->setText(QString::number(s.getOffset(1)));
+    ui->comboBox_yOffset->setCurrentText(s.getOffsetUnits().yOffset);
     ui->lineEdit_zOffset->setText(QString::number(s.getOffset(2)));
+    ui->comboBox_zOffset->setCurrentText(s.getOffsetUnits().zOffset);
 
     ui->lineEdit_xEpsilon->setText(QString::number(s.getEpsilon(0)));
+    ui->comboBox_xEpsilon->setCurrentText(s.getOffsetUnits().xEpsilon);
     ui->lineEdit_yEpsilon->setText(QString::number(s.getEpsilon(1)));
+    ui->comboBox_yEpsilon->setCurrentText(s.getOffsetUnits().yEpsilon);
     ui->lineEdit_zEpsilon->setText(QString::number(s.getEpsilon(2)));
+    ui->comboBox_zEpsilon->setCurrentText(s.getOffsetUnits().zEpsilon);
 
     fishing f =s.getFishing();
 
@@ -255,15 +322,46 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_FishingRange->setText(QString::number(f.range));
     ui->lineEdit_FishingSubset->setText(QString::number(f.subset));
 
+    ui->comboBox_fishingIncrement->setCurrentText(f.unit);
+    ui->comboBox_CameraOrientation->setCurrentText(s.getCameraOrientation());
+    ui->comboBox_ShortChannelPosition->clear();
+    if(!s.getCameraOrientation().compare("Left-Right"))
+    {
+        ui->comboBox_ShortChannelPosition->addItem("Left");
+        ui->comboBox_ShortChannelPosition->addItem("Right");
+        ui->comboBox_ShortChannelPosition->setCurrentText(s.getShortChannelPosition());
+    }else
+    {
+        ui->comboBox_ShortChannelPosition->addItem("Top");
+        ui->comboBox_ShortChannelPosition->addItem("Bottom");
+        ui->comboBox_ShortChannelPosition->setCurrentText(s.getShortChannelPosition());
+    }
+
     // Filter
+    std::vector<QString> v = s.getFilterFiles();
+    for( auto i : v)
+    {
+        insertItem(i, listWidgetFilters);
+    }
     ui->lineEdit_maxIntLong->setText(QString::number(s.getMaxIntLong()));
     ui->lineEdit_maxIntShort->setText(QString::number(s.getMaxIntShort()));
     ui->lineEdit_precision->setText(QString::number(s.getPrecision()));
+    ui->comboBox_FilterOrientation->setCurrentText(s.getFilterOrientation());
+    ui->comboBox_FilterOrientation->setCurrentText(s.getFilterOrientation());
 
     //Reconstructor
     ui->lineEdit_xyBinning->setText(QString::number(s.getXYbinning()));
     ui->lineEdit_zBinning->setText(QString::number(s.getZbinning()));
     ui->checkBox_runConvolution->setChecked(s.getRunConvolution());
+    ui->checkBox_HistEq->setChecked(s.getNonLinearHistEq());
+    ui->lineEdit_CorrectionCoefficient->
+            setText(QString::number(s.getCorrectionCoefficient()));
+    ui->lineEdit_Threshold->setText(QString::number(s.getThreshold()));
+    ui->checkBox_LZWCompression->setChecked(s.getLZWCompression());
+    ui->checkBox_scliceZ->setChecked(s.getResliceZ());
+    ui->lineEdit_startSliceZ->setText(QString::number(s.getStartSliceZ()));
+    ui->lineEdit_endSliceZ->setText(QString::number(s.getEndSliceZ()));
+
 }
 
 void sdmixer::setStartDemixingButtonEnabled(bool val)
@@ -274,32 +372,6 @@ void sdmixer::setCancelRunButtonEnabled(bool val)
 {
     ui->pushButton_CancelRun->setVisible(val);
 }
-
-
-std::vector<QString> sdmixer::getInputFiles(){return this->InputFiles;}
-bool sdmixer::getRunPairfinder(){return this->runPairFinder;}
-bool sdmixer::getRunFilter(){return this->runFilter;}
-bool sdmixer::getRunReconstructor(){return this->runReconstructor;}
-bool sdmixer::getForce2D(){return this->force2D;}
-int sdmixer::getPixelSize(){return this->pixelSizeNM;}
-double sdmixer::getOffset(int dim){
-    qDebug() << "offset " << dim << ": " <<offset[dim];
-    return offset[dim];
-}
-double sdmixer::getEpsilon(int dim){
-    qDebug()<<" epsilon " << dim << ": " << epsilon[dim];
-    return epsilon[dim];}
-sdmixer::fishing sdmixer::getFishing(){return this->fishingSettings;}
-std::vector<QString> sdmixer::getFilterFiles(){return this->FilterFiles;}
-double sdmixer::getMaxIntShort(){return this->maxIntensityShort;}
-double sdmixer::getMaxIntLong(){return this->maxIntensityLong;}
-double sdmixer::getPrecision(){return this->precision;}
-double sdmixer::getReconstructor_xyBinning(){return this->xyBinning;}
-double sdmixer::getReconstructor_zBinning(){return this->zBinning;}
-bool sdmixer::getRunConvolution() { return this->runConvolution; }
-
-
-
 
 // Drag & Drop implementation
 // Input Files can be draged and dropped onto MainWindow
@@ -365,7 +437,22 @@ void sdmixer::nextStage()
         return;
 
     }
-    if (current_stage == 2)
+    if(current_stage == 2)
+    {
+        QThread *filter_thread = new QThread;
+        Filter *f = new Filter(this);
+
+        f->moveToThread(filter_thread);
+        connect(filter_thread, SIGNAL(started()), f, SLOT(doWork()));
+        connect(f, SIGNAL(finished()), filter_thread, SLOT(quit()));
+        connect(f, SIGNAL(finished()), f, SLOT(deleteLater()));
+        connect(filter_thread, SIGNAL(finished()), filter_thread, SLOT(deleteLater()));
+        connect(f, SIGNAL(finished()),this, SLOT(threadReady()));
+        filter_thread->start();
+
+        return;
+    }
+    if (current_stage == 3)
     {
         QThread *reconstructor_thread;
         Reconstructor *r;
@@ -382,11 +469,10 @@ void sdmixer::nextStage()
         connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
         reconstructor_thread->start();
 
-
         return;
 
     }
-    if (current_stage >= 3)
+    if (current_stage >= 4)
     {
         current_stage=0;
 
@@ -411,12 +497,7 @@ void sdmixer::nextStage()
 
     }
 }
-void sdmixer::cleanUp()
-{
-    //reconstructor_thread->quit();
-    //ui->pushButton_CancelRun->setVisible(false);
 
-}
 
 void sdmixer::on_startDemixing_clicked()
 {
@@ -514,3 +595,4 @@ void sdmixer::on_pushButton_selectOutputDirectory_clicked()
     ui->lineEdit_outputDirectory->setText(path);
 
 }
+

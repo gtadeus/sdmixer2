@@ -14,9 +14,10 @@ void Settings::setInputFiles(std::vector<QString> str)
 
 Settings::Settings(sdmixer *s)
 {
+    // Session & Pairfinder
     setInputFiles(s->getInputFiles());
-
     setPixelSizeNM(s->getPixelSize());
+    output_directory = s->getOutputDirectory();
 
     setRunPairfinder(s->getRunPairfinder());
     setRunFilter(s->getRunFilter());
@@ -31,15 +32,30 @@ Settings::Settings(sdmixer *s)
     }
 
     setFishing(s->getFishing());
+    CameraOrientation = s->getCameraOrientation();
+    ShortChannelPosition = s->getShortChannelPosition();
+    offsetUnits = s->getOffsetUnits();
 
+    // Filter
+    setFilterFiles(s->getFilterFiles());
     setMaxIntLong(s->getMaxIntLong());
     setMaxIntShort(s->getMaxIntShort());
     setPrecision(s->getPrecision());
+    FilterOrientation = s->getFilterOrientation();
 
-    setFilterFiles(s->getFilterFiles());
-
+    //Reconstructor
     setXYBinning(s->getReconstructor_xyBinning());
     setZBinning(s->getReconstructor_zBinning());
+    runConvolution = s->getRunConvolution();
+    nonLinearHistogramEqual = s->getNonLinearHistEq();
+    histeqCoefficient = s->getHisteqCoefficient();
+    Threshold = s->getThreshold();
+    sqrtCummulation = s->getSqrtCummulation();
+
+    LZWCompression = s->getLZWCompression();
+    ResliceZ = s->getResliceZ();
+    startRescliceZ = s->getStartRescliceZ();
+    endRescliceZ = s->getEndRescliceZ();
 
 }
 
@@ -80,6 +96,7 @@ void Settings::initXML(){
     QDomElement general = settingsFile.createElement("field");
     general.setAttribute("name", "GeneralSettings");
 
+    appendChildNode(general, "OutputDirectory", output_directory);
     appendChildNode(general, "pixelSizeNM", pixelSizeNM);
     appendChildNode(general, "runPairFinder", runPairFinder);
     appendChildNode(general, "runFilter", runFilter);
@@ -98,9 +115,8 @@ void Settings::initXML(){
 
     for( int i = 0; i < max_dims; ++i)
     {
-        qDebug()<<i;
         QDomElement child = appendChildNode(qdOffset, dimNames[i], offset[i]);
-        child.setAttribute("unit", "px");
+        child.setAttribute("unit", offsetUnits.getOffset(i));
     }
 
     QDomElement qdEpsilon = createField("Epsilon");
@@ -109,36 +125,67 @@ void Settings::initXML(){
     for( int i = 0; i < max_dims; ++i)
     {
        QDomElement child = appendChildNode(qdEpsilon, dimNames[i], epsilon[i]);
-       child.setAttribute("unit", "px");
+       child.setAttribute("unit", offsetUnits.getEpsilon(i));
     }
+
+    appendChildNode(pairfinder, "CameraOrientation", CameraOrientation);
+    appendChildNode(pairfinder, "ShortChannelPosition", ShortChannelPosition);
 
     QDomElement qdFishing = createField("Auto-OffsetSettings");
     pairfinder.appendChild(qdFishing);
     appendChildNode(qdFishing, "run", fishing.run);
     appendChildNode(qdFishing, "increment", fishing.increment);
+    appendChildNode(qdFishing, "unit", fishing.unit);
     appendChildNode(qdFishing, "range", fishing.range);
     appendChildNode(qdFishing, "subset", fishing.subset);
 
+
     QDomElement filter = createField("FilterSettings");
     settings.appendChild(filter);
+    if ( !FilterFiles.empty() )
+    {
+        QDomElement qdFilterFiles = settingsFile.createElement( "FilterFiles" );
+        filter.appendChild( qdFilterFiles );
+        for( auto i : FilterFiles)
+        {
+            QDomElement qdFilterFileEntry = settingsFile.createElement( "FilterFile" );
+            qdFilterFileEntry.setAttribute( "path", i );
+            qdFilterFiles.appendChild( qdFilterFileEntry );
+        }
+    }
     appendChildNode(filter, "maxIntShort", maxIntensityShort);
     appendChildNode(filter, "maxIntLong", maxIntensityLong);
     appendChildNode(filter, "precision", precision);
+    appendChildNode(filter, "FilterOrientation", FilterOrientation);
 
     QDomElement reconstructor = createField("ReconstructorSettings");
     settings.appendChild(reconstructor);
     appendChildNode(reconstructor, "xyBinning", xyBinning);
     appendChildNode(reconstructor, "zBinning", zBinning);
-    appendChildNode(reconstructor, "nonLinearHistEqual", false);
+    appendChildNode(reconstructor, "nonLinearHistEqual", nonLinearHistogramEqual);
     appendChildNode(reconstructor, "runConvolution", runConvolution);
-    appendChildNode(reconstructor, "FWHM_xy", 0);
-    appendChildNode(reconstructor, "FWHM_z", 0);
 
-    QDomElement expertSettings = createField("ExpertSettings");
-    settings.appendChild(expertSettings);
-    appendChildNode(expertSettings, "correctionCoefficient", 0.8);
-    appendChildNode(expertSettings, "Threshold", 0);
-    appendChildNode(expertSettings, "sqrtCummulation", true);
+    appendChildNode(reconstructor, "correctionCoefficient", histeqCoefficient);
+    appendChildNode(reconstructor, "Threshold", Threshold);
+    appendChildNode(reconstructor, "sqrtCummulation", sqrtCummulation);
+    appendChildNode(reconstructor, "LZWCompression", LZWCompression);
+    appendChildNode(reconstructor, "ResliceZ", ResliceZ);
+    appendChildNode(reconstructor, "startRescliceZ", startRescliceZ);
+    appendChildNode(reconstructor, "endRescliceZ", endRescliceZ);
+
+    for(int i = 0; i < 2; ++i)
+    {
+        QDomElement qdConvKernel = createField("ConvolutionKernel");
+
+        appendChildNode(qdConvKernel, "FilterFile", "filter1.png");
+        appendChildNode(qdConvKernel, "FWHM_xy", 1);
+        appendChildNode(qdConvKernel, "FWHM_z", 2);
+        reconstructor.appendChild(qdConvKernel);
+    }
+
+
+    //QDomElement expertSettings = createField("ExpertSettings");
+    //settings.appendChild(expertSettings);
 
     settingsFile.appendChild(settings);
 }
@@ -151,6 +198,13 @@ QDomElement Settings::createField(QString name){
 QDomElement Settings::appendChildNode(QDomElement parent, QString name, double val){
     QDomElement qd = settingsFile.createElement("value");
     qd.setAttribute("number", val);
+    qd.setAttribute("name", name);
+    parent.appendChild(qd);
+    return qd;
+}
+QDomElement Settings::appendChildNode(QDomElement parent, QString name, QString str){
+    QDomElement qd = settingsFile.createElement("value");
+    qd.setAttribute("string", str);
     qd.setAttribute("name", name);
     parent.appendChild(qd);
     return qd;
@@ -175,6 +229,14 @@ void Settings::loadFromFile(QString file){
     for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
     {
         QDomElement e = n.toElement();
+        if( e.tagName() == "InputFiles")
+        {
+            for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
+            {
+                QDomElement f = m.toElement();
+                InputFiles.push_back(f.attribute("path"));
+            }
+        }
         if( e.tagName() == "field" )
         {
             if( e.attribute("name") == "GeneralSettings")
@@ -182,6 +244,10 @@ void Settings::loadFromFile(QString file){
                 for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
                 {
                     QDomElement f = m.toElement();
+                    if (f.attribute("name") == "OutputDirectory")
+                    {
+                        output_directory = f.attribute("string");
+                    }
                     if (f.attribute("name") == "pixelSizeNM")
                     {
                         pixelSizeNM = f.attribute("number").toInt();
@@ -214,12 +280,18 @@ void Settings::loadFromFile(QString file){
                         for(QDomNode mm = f.firstChild(); !mm.isNull(); mm = mm.nextSibling())
                         {
                             QDomElement ee = mm.toElement();
-                            if(ee.attribute("name") == "x")
+                            if(ee.attribute("name") == "x"){
                                 offset[0]=ee.attribute("number").toDouble();
-                            if(ee.attribute("name") == "y")
+                                offsetUnits.xOffset=ee.attribute("unit");
+                            }
+                            if(ee.attribute("name") == "y"){
                                 offset[1]=ee.attribute("number").toDouble();
-                            if(ee.attribute("name") == "z")
+                                offsetUnits.yOffset=ee.attribute("unit");
+                            }
+                            if(ee.attribute("name") == "z"){
                                 offset[2]=ee.attribute("number").toDouble();
+                                offsetUnits.zOffset=ee.attribute("unit");
+                            }
                         }
                     }
                     if (f.attribute("name") == "Epsilon")
@@ -227,18 +299,32 @@ void Settings::loadFromFile(QString file){
                         for(QDomNode mm = f.firstChild(); !mm.isNull(); mm = mm.nextSibling())
                         {
                             QDomElement ee = mm.toElement();
-                            if(ee.attribute("name") == "x")
+                            if(ee.attribute("name") == "x"){
                                 epsilon[0]=ee.attribute("number").toDouble();
-                            if(ee.attribute("name") == "y")
+                                offsetUnits.xEpsilon=ee.attribute("unit");
+                            }
+                            if(ee.attribute("name") == "y"){
                                 epsilon[1]=ee.attribute("number").toDouble();
-                            if(ee.attribute("name") == "z")
+                                offsetUnits.yEpsilon=ee.attribute("unit");
+                            }
+                            if(ee.attribute("name") == "z"){
                                 epsilon[2]=ee.attribute("number").toDouble();
+                                offsetUnits.zEpsilon=ee.attribute("unit");
+                            }
                         }
 
                     }
+                    if (f.attribute("name") == "CameraOrientation")
+                    {
+                        CameraOrientation = f.attribute("string");
+                    }
+                    if (f.attribute("name") == "ShortChannelPosition")
+                    {
+                        ShortChannelPosition = f.attribute("string");
+                    }
                     if (f.attribute("name") == "Auto-OffsetSettings")
                     {
-                        for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
+                        for(QDomNode m = f.firstChild(); !m.isNull(); m = m.nextSibling())
                         {
                             QDomElement f = m.toElement();
                             if (f.attribute("name") == "run")
@@ -247,7 +333,7 @@ void Settings::loadFromFile(QString file){
                             }
                             if (f.attribute("name") == "increment")
                             {
-                                fishing.increment = f.attribute("number").toInt();
+                                fishing.increment = f.attribute("number").toDouble();
                             }
                             if (f.attribute("name") == "range")
                             {
@@ -256,6 +342,10 @@ void Settings::loadFromFile(QString file){
                             if (f.attribute("name") == "subset")
                             {
                                 fishing.subset = f.attribute("number").toInt();
+                            }
+                            if (f.attribute("name") == "unit")
+                            {
+                                fishing.unit = f.attribute("string");
                             }
                         }
                     }
@@ -266,6 +356,14 @@ void Settings::loadFromFile(QString file){
                 for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
                 {
                     QDomElement f = m.toElement();
+                    if( f.tagName() == "FilterFiles")
+                    {
+                        for(QDomNode mm = m.firstChild(); !mm.isNull(); mm = mm.nextSibling())
+                        {
+                            QDomElement ff = mm.toElement();
+                            FilterFiles.push_back(ff.attribute("path"));
+                        }
+                    }
                     if (f.attribute("name") == "maxIntShort")
                     {
                         maxIntensityShort = f.attribute("number").toInt();
@@ -277,6 +375,10 @@ void Settings::loadFromFile(QString file){
                     if (f.attribute("name") == "precision")
                     {
                         precision = f.attribute("number").toDouble();
+                    }
+                    if (f.attribute("name") == "FilterOrientation")
+                    {
+                        FilterOrientation = f.attribute("string");
                     }
                 }
             }
@@ -295,18 +397,39 @@ void Settings::loadFromFile(QString file){
                     }
                     if (f.attribute("name") == "nonLinearHistEqual")
                     {
-
+                        nonLinearHistogramEqual = f.attribute("number").toInt();
                     }
                     if (f.attribute("name") == "runConvolution")
                     {
                         runConvolution = f.attribute("number").toInt();
                     }
-                    if (f.attribute("name") == "FWHM_xy")
+                    if (f.attribute("name") == "correctionCoefficient")
                     {
-
+                        histeqCoefficient = f.attribute("number").toDouble();
                     }
-                    if (f.attribute("name") == "FWHM_z")
+                    if (f.attribute("name") == "Threshold")
                     {
+                        Threshold = f.attribute("number").toDouble();
+                    }
+                    if (f.attribute("name") == "sqrtCummulation")
+                    {
+                        sqrtCummulation = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "LZWCompression")
+                    {
+                        LZWCompression = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "ResliceZ")
+                    {
+                        ResliceZ = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "startRescliceZ")
+                    {
+                        startRescliceZ = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "endRescliceZ")
+                    {
+                        endRescliceZ = f.attribute("number").toInt();
                     }
                 }
             }
@@ -314,16 +437,7 @@ void Settings::loadFromFile(QString file){
             {
                 for(QDomNode m = e.firstChild(); !m.isNull(); m = m.nextSibling())
                 {
-                    QDomElement f = m.toElement();
-                    if (f.attribute("name") == "correctionCoefficient")
-                    {
-                    }
-                    if (f.attribute("name") == "Threshold")
-                    {
-                    }
-                    if (f.attribute("name") == "sqrtCummulation")
-                    {
-                    }
+                    //QDomElement f = m.toElement();
                 }
             }
         }

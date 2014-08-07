@@ -18,6 +18,7 @@ public:
     void retrieveElements(QDomElement root, QString tag, QString att);
     void retrieveElements2(QDomNodeList nodes);
     QDomElement appendChildNode(QDomElement parent, QString name, double val);
+    QDomElement appendChildNode(QDomElement parent, QString name, QString str);
     QDomElement createField(QString name);
 
     //General
@@ -43,11 +44,13 @@ public:
     void setRunConvolution(bool val){this->runConvolution=val;}
 
 
+    std::vector<QString> getInputFiles() {return InputFiles;}
     int getPixelSizeNM(){return pixelSizeNM;}
     bool getRunPairFinder(){return runPairFinder;}
     bool getRunFilter(){return runFilter;}
     bool getRunReconstructor(){return runPairFinder;}
     bool getForce2D(){return force2D;}
+    QString getOutputDirectory(){return output_directory;}
 
     double getOffset(int dim){
         if(dim < max_dims)
@@ -61,42 +64,69 @@ public:
         else
             return 0;
     }
-
+    sdmixer::offset_units getOffsetUnits(){return offsetUnits;}
+    QString getCameraOrientation(){return CameraOrientation;}
+    QString getShortChannelPosition(){return ShortChannelPosition;}
     sdmixer::fishing getFishing(){return fishing;}
+
+    std::vector<QString> getFilterFiles() {return FilterFiles;}
     int getMaxIntLong(){return maxIntensityLong;}
     int getMaxIntShort(){return maxIntensityShort;}
     double getPrecision(){return precision;}
+    QString getFilterOrientation(){return FilterOrientation; }
 
     double getXYbinning(){return xyBinning;}
     double getZbinning(){return zBinning;}
     bool getRunConvolution() { return runConvolution;}
+    bool getNonLinearHistEq() { return nonLinearHistogramEqual;}
+    double getCorrectionCoefficient() {return histeqCoefficient;}
+    double getThreshold() { return Threshold;}
+    bool getLZWCompression() { return LZWCompression;}
+    bool getResliceZ(){return ResliceZ;}
+    int getStartSliceZ(){return startRescliceZ;}
+    int getEndSliceZ() { return endRescliceZ;}
+
 
 private:
-
+    static const int max_dims = 3;
+    // Session & Pairfinder
+    std::vector<QString> InputFiles;
+    QString output_directory;
     bool runPairFinder=true;
     bool runFilter=true;
     bool runReconstructor=true;
     bool force2D=true;
-
     int pixelSizeNM=0;
 
-    static const int max_dims = 3;
     double offset[max_dims]={0};
     double epsilon[max_dims]={0};
-
     sdmixer::fishing fishing;
+    QString CameraOrientation;
+    QString ShortChannelPosition;
+    sdmixer::offset_units offsetUnits;
 
+    // FIlter
+    std::vector<QString> FilterFiles;
     int maxIntensityLong=0;
     int maxIntensityShort=0;
     double precision=0.0;
+    QString FilterOrientation;
 
+    // Reconstructor
     double xyBinning=0;
     double zBinning=0;
-
     bool runConvolution;
+    bool nonLinearHistogramEqual;
+    double histeqCoefficient;
+    double Threshold;
+    bool sqrtCummulation;
 
-    std::vector<QString> InputFiles;
-    std::vector<QString> FilterFiles;
+    bool LZWCompression;
+    bool ResliceZ;
+    int startRescliceZ;
+    int endRescliceZ;
+
+
 
     QDomDocument settingsFile;
 

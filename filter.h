@@ -6,11 +6,14 @@
 #include <QColor>
 #include <vector>
 #include <fstream>
+#include "sdmixer.h"
+#include <QThread>
 
-class Filter
+class Filter : public QObject
 {
+    Q_OBJECT
 public:
-    Filter();
+    Filter(sdmixer *s);
     void run();
     void loadFilterImage(QString path);
     void initializeIntensities();
@@ -23,8 +26,15 @@ public:
     void setMaxIntLong(int val) { this->maxIntLong=val; }
     void setMaxIntShort(int val) { this->maxIntShort=val; }
 
+signals:
+    void finished();
+
+public slots:
+    void doWork();
+
 private:
 
+    sdmixer *sdm;
     int maxIntLong;
     int maxIntShort;
 
@@ -35,6 +45,8 @@ private:
     QString pathIntensitySpace;
 
     std::vector<QImage> QImgFilters;
+    std::vector<QString> FilterInputFiles;
+    QString output_directory;
 
 };
 

@@ -23,7 +23,6 @@ public:
     {
         int x;
         int y;
-
         int z;
 
         int get(int dim)

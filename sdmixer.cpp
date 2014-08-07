@@ -33,6 +33,9 @@ sdmixer::sdmixer(QWidget *parent) :
     ui->pushButton_CancelRun->setVisible(false);
 
     listWidgetInputFiles = ui->listWidget_InputFiles;
+    connect(listWidgetInputFiles, SIGNAL(itemClicked(QListWidgetItem*)),
+            this, SLOT(InputFileClicked(QListWidgetItem*)));
+
     listWidgetFilters = ui->listWidget_FilterFiles;
     console = ui->textConsole;
     console->acceptRichText();
@@ -55,7 +58,65 @@ sdmixer::sdmixer(QWidget *parent) :
     }
 
 }
-//small helper functions
+void sdmixer::InputFileClicked(QListWidgetItem *item)
+{
+    if(!item)
+        return;
+
+    PairFinder pf(this, item->text());
+    ui->lineEdit_FileInfoDimension->setText(QString::number(pf.getDimensions()));
+    ui->lineEdit_FileInfo_xmin->setText(QString::number(pf.getMinMaxValues().min_x));
+    ui->lineEdit_FileInfo_xmax->setText(QString::number(pf.getMinMaxValues().max_x));
+    ui->lineEdit_FileInfo_ymin->setText(QString::number(pf.getMinMaxValues().min_y));
+    ui->lineEdit_FileInfo_ymax->setText(QString::number(pf.getMinMaxValues().max_y));
+    ui->lineEdit_FileInfo_zmin->setText(QString::number(pf.getMinMaxValues().min_z));
+    ui->lineEdit_FileInfo_zmax->setText(QString::number(pf.getMinMaxValues().max_z));
+    getColsAndRows(item->text());
+    ui->lineEdit_FileInfoCols->setText(QString::number(rawDataCols));
+    ui->lineEdit_FileInfoRows->setText(QString::number(rawDataRows));
+
+}
+
+void sdmixer::getColsAndRows(QString file)
+{
+    rawDataCols=0;
+    rawDataRows=0;
+    std::ifstream ifs(file.toStdString());
+    std::string firstLine, secondLine;
+    getline (ifs, firstLine);
+    getline (ifs, secondLine);
+    ifs.close();
+    //determine column number from second line
+    std::stringstream countColsStream(secondLine);
+    double dd;
+    while (countColsStream >> dd)
+    {
+        ++rawDataCols;
+    }
+    // This is the fastest way to count lines in file
+    // from the UNIX tool wget
+
+    const char *fname = file.toStdString().c_str();
+
+    static const int BUFFER_SIZE = 16*1024;
+    int fd = open(fname, O_RDONLY);
+    if(fd == -1)
+        return;
+    char buf[BUFFER_SIZE + 1];
+    while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
+    {
+        if(bytes_read == (size_t)-1)
+            return;//handle_error("read failed");
+        if (!bytes_read)
+            break;
+        for(char *p = buf; (p = (char*) memchr(p, '\n', (buf + bytes_read) - p)); ++p)
+            ++rawDataRows;
+    }
+
+    // Lines counted
+
+}
+
 QString sdmixer::timestamp()
 {
     QString retval;
@@ -261,6 +322,7 @@ void sdmixer::insertItem(QString filename, QListWidget *list){
 }
 
 void sdmixer::on_actionQuit_triggered(){
+
     qApp->quit();
 }
 
@@ -276,6 +338,12 @@ void sdmixer::on_addFileButton_clicked(){
     }
 }
 
+void sdmixer::threadReady()
+{
+    qDebug() << "thread Ready";
+    nextStage();
+}
+
 void sdmixer::nextStage()
 {
 
@@ -283,38 +351,38 @@ void sdmixer::nextStage()
     qDebug() << "current_stage:" << current_stage;
     if(current_stage == 1)
     {
-        QThread *thread = new QThread;
-        PairFinder *p = new PairFinder(this, InputFiles[current_file]);
+        QThread *pairfinder_thread = new QThread;
+        PairFinder *pf = new PairFinder(this, InputFiles[current_file]);
         //PairFinder p(this, InputFiles[current_file]);
 
-        p->moveToThread(thread);
-        connect(thread, SIGNAL(started()), p, SLOT(doWork()));
-        connect(p, SIGNAL(finished()), thread, SLOT(quit()));
-        connect(p, SIGNAL(finished()), p, SLOT(deleteLater()));
-        connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-        thread->start();
+        pf->moveToThread(pairfinder_thread);
+        connect(pairfinder_thread, SIGNAL(started()), pf, SLOT(doWork()));
+        connect(pf, SIGNAL(finished()), pairfinder_thread, SLOT(quit()));
+        connect(pf, SIGNAL(finished()), pf, SLOT(deleteLater()));
+        connect(pairfinder_thread, SIGNAL(finished()), pairfinder_thread, SLOT(deleteLater()));
+        connect(pf, SIGNAL(finished()), this, SLOT(threadReady()));
+        pairfinder_thread->start();
         return;
 
     }
     if (current_stage == 2)
     {
+        QThread *reconstructor_thread;
+        Reconstructor *r;
         //Reconstructor r(this, pf_output);
 
         reconstructor_thread = new QThread;
-        r = new Reconstructor(this, pf_output);
+        r = new Reconstructor(this, pf_output, InputFiles[current_file]);
 
-        /*r->moveToThread(reconstructor_thread);
-        connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
-        connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
-        connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
-        connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
-        reconstructor_thread->start();*/
         r->moveToThread(reconstructor_thread);
         connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
         connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
         connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
         connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
+        connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
         reconstructor_thread->start();
+
+
         return;
 
     }
@@ -322,22 +390,22 @@ void sdmixer::nextStage()
     {
         current_stage=0;
 
-        /*this->current_file++;
-        if( current_file >= this->getInputFiles().size() )
+        current_file++;
+        if( current_file >= InputFiles.size() )
         {
             qDebug() << current_file;
-            this->current_stage=0;
-            this->current_file = 0;
+            current_stage=0;
+            current_file = 0;
             sdmixer::log(this, "demixing finished!");
-            this->setStartDemixingButtonEnabled(true);
-            this->setCancelRunButtonEnabled(false);
+            setStartDemixingButtonEnabled(true);
+            setCancelRunButtonEnabled(false);
         }
         else
         {
-            this->current_stage = 0;
+            current_stage = 0;
             qDebug() << "next stage";
-            this->nextStage();
-        }*/
+            nextStage();
+        }
 
         return;
 
@@ -360,6 +428,7 @@ void sdmixer::on_startDemixing_clicked()
         writeToConsole(err);
         return;
     }
+    output_directory = ui->lineEdit_outputDirectory->text();
     ui->pushButton_CancelRun->setVisible(true);
     setStartDemixingButtonEnabled(false);
 
@@ -436,4 +505,12 @@ void sdmixer::on_pushButton_CancelRun_clicked()
 {
     ui->pushButton_CancelRun->setVisible(false);
     setStartDemixingButtonEnabled(true);
+}
+
+void sdmixer::on_pushButton_selectOutputDirectory_clicked()
+{
+    QString path = QFileDialog::getExistingDirectory(this, "Select Output Directory", QString());
+    output_directory = path;
+    ui->lineEdit_outputDirectory->setText(path);
+
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>707</width>
-    <height>558</height>
+    <width>810</width>
+    <height>561</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,9 +18,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>360</y>
-      <width>681</width>
-      <height>131</height>
+      <y>370</y>
+      <width>781</width>
+      <height>121</height>
      </rect>
     </property>
    </widget>
@@ -29,8 +29,8 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>681</width>
-      <height>331</height>
+      <width>781</width>
+      <height>341</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -46,7 +46,7 @@
         <x>10</x>
         <y>10</y>
         <width>431</width>
-        <height>271</height>
+        <height>231</height>
        </rect>
       </property>
       <property name="selectionMode">
@@ -58,8 +58,8 @@
        <rect>
         <x>460</x>
         <y>10</y>
-        <width>160</width>
-        <height>277</height>
+        <width>121</width>
+        <height>281</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -195,8 +195,207 @@
        </item>
       </layout>
      </widget>
+     <widget class="QLabel" name="label_26">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>250</y>
+        <width>111</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Output Directory:</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>264</y>
+        <width>431</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_10">
+       <item>
+        <widget class="QLineEdit" name="lineEdit_outputDirectory"/>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_selectOutputDirectory">
+         <property name="text">
+          <string>Select...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>600</x>
+        <y>20</y>
+        <width>151</width>
+        <height>131</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <widget class="QLabel" name="label_28">
+         <property name="text">
+          <string>Dimensions:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_FileInfoDimension"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_29">
+         <property name="text">
+          <string>Rows:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_FileInfoRows"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_30">
+         <property name="text">
+          <string>Columns:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_FileInfoCols">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>600</x>
+        <y>160</y>
+        <width>151</width>
+        <height>131</height>
+       </rect>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_31">
+         <property name="text">
+          <string>x min:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_32">
+         <property name="text">
+          <string>x max:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_xmin">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_xmax">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_34">
+         <property name="text">
+          <string>y min:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label_33">
+         <property name="text">
+          <string>y max:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_ymin">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_ymax">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_36">
+         <property name="text">
+          <string>z min:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="label_35">
+         <property name="text">
+          <string>z max:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_zmin">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="lineEdit_FileInfo_zmax">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <zorder>layoutWidget</zorder>
      <zorder>listWidget_InputFiles</zorder>
+     <zorder>lineEdit_outputDirectory</zorder>
+     <zorder>pushButton_selectOutputDirectory</zorder>
+     <zorder>label_26</zorder>
+     <zorder>label_27</zorder>
+     <zorder>lineEdit_FileInfoDimension</zorder>
+     <zorder>label_28</zorder>
+     <zorder>lineEdit_FileInfoRows</zorder>
+     <zorder>label_29</zorder>
+     <zorder>lineEdit_FileInfoCols</zorder>
+     <zorder>label_30</zorder>
+     <zorder>label_31</zorder>
+     <zorder>lineEdit_FileInfo_xmin</zorder>
+     <zorder>lineEdit_FileInfo_xmax</zorder>
+     <zorder>label_32</zorder>
+     <zorder>label_34</zorder>
+     <zorder>lineEdit_FileInfo_ymax</zorder>
+     <zorder>lineEdit_FileInfo_ymin</zorder>
+     <zorder>label_33</zorder>
+     <zorder>lineEdit_FileInfo_zmin</zorder>
+     <zorder>lineEdit_FileInfo_zmax</zorder>
+     <zorder>label_35</zorder>
+     <zorder>label_36</zorder>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -979,7 +1178,7 @@
    <widget class="QProgressBar" name="progressBar">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>600</x>
       <y>500</y>
       <width>191</width>
       <height>23</height>
@@ -1008,7 +1207,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>707</width>
+     <width>810</width>
      <height>18</height>
     </rect>
    </property>

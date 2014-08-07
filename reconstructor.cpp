@@ -2,7 +2,6 @@
 
 void Reconstructor::doWork()
 {
-    //emit started();
     setMinMax(sdm->getPF_min_maxValues());
     setKernel();
 
@@ -13,12 +12,10 @@ void Reconstructor::doWork()
     outputTIFF();
 
     emit finished();
-    sdm->nextStage();
 }
 
 void Reconstructor::setArray()
 {
-
     sdmixer::log(sdm, "start set array");
 
     for(int i = 0; i < dimensions; ++i)
@@ -523,9 +520,29 @@ void Reconstructor::getIndexFromXYZ()
 static bool pred( const std::string &s ) {
   // ...
 }
-Reconstructor::Reconstructor(sdmixer *s, std::vector<PairFinder::Localization>& data)
+Reconstructor::Reconstructor(sdmixer *s,
+                             std::vector<PairFinder::Localization>& data,
+                             QString filename)
 {
+    input_file = filename;
     this->sdm = s;
+
+    QFile qf(input_file);
+    QFileInfo fi(qf);
+
+    if(!sdm->getOutputDirectory().isEmpty())
+        output_dir = sdm->getOutputDirectory();
+    else
+        output_dir=fi.path();
+
+    input_base_name = fi.baseName();
+    tiff_out_file = output_dir.append("/");
+    tiff_out_file = tiff_out_file.append(input_base_name);
+    tiff_out_file.append(".tif");
+
+    qDebug() << output_dir;
+
+
     binning[0] = s->getReconstructor_xyBinning();
     binning[1] = s->getReconstructor_xyBinning();
     binning[2] = s->getReconstructor_zBinning();
@@ -606,6 +623,7 @@ void Reconstructor::outputTIFF()
     int number_image=0;
     QString current_image;
     int current_page=0;
+
 
     out = TIFFOpen(tiff_out_file.toLocal8Bit(), "w");
     if (!out){return;

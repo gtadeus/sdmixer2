@@ -63,7 +63,9 @@ public:
         bool make3D=true;
     };
 
-    Reconstructor(sdmixer *s, std::vector<PairFinder::Localization> &PFinput_file);
+    Reconstructor(sdmixer *s,
+                  std::vector<PairFinder::Localization> &PFinput_file,
+                  QString filename);
     void run();
     void createKernel();
 
@@ -132,7 +134,11 @@ private:
     int dbl_image_min=0;
     int dbl_image_max=0;
 
-    QString tiff_out_file=QString("out.tif");
+    QString tiff_out_suffix=QString("out");
+    QString tiff_out_file;
+    QString input_base_name;
+    QString input_file;
+    QString output_dir;
 
 
 

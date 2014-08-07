@@ -3,7 +3,7 @@
 #include "sdmixer.h"
 
 void PairFinder::doWork() {
-    // allocate resources using new here
+
     qDebug()<<"started file loading in new thread";
 
     loadInputFile();
@@ -16,24 +16,9 @@ void PairFinder::doWork() {
     qDebug()<<"searching for pairs...";
 
     FindPairs();
-    //sdm->setStartDemixingButtonEnabled(true);
+
     sdm->setPF_min_maxValues(min_maxValues);
     emit finished();
-    sdm->nextStage();
-
-    /*Reconstructor r(sdm, output_file);
-    r.setMinMax(min_x, max_x, min_y, max_y, min_z, max_z);
-
-    //r.XYZfromFilter();
-    //std::vector<PairFinder::Localization>().swap(output_file);
-    //r.getMinMax();
-    r.setArray();
-    r.setKernel();
-
-    //r.Convolution();
-    r.map8bit();
-    r.outputTIFF();*/
-
 
 }
 void PairFinder::Tokenize(const std::string& str,
@@ -106,15 +91,16 @@ PairFinder::PairFinder(sdmixer *s, QString f)
 
     }
 
-    //loadFile(file);
-    //s->writeToConsole("searching Pairs");
+    QFile qf(file);
+    QFileInfo fi(qf);
 
-    /*FindPairs();
+    if(!sdm->getOutputDirectory().isEmpty())
+        output_dir = sdm->getOutputDirectory();
+    else
+        output_dir=fi.path();
 
-    QString str; str = "pairs found ";
-    str.append(QString::number(numpairs));
+    qDebug() << output_dir;
 
-    s->writeToConsole(str);*/
 }
 void PairFinder::getHeader()
 {

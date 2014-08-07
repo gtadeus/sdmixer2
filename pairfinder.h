@@ -141,6 +141,7 @@ private:
     double NM_PER_PX = 0;
 
     QString header;
+    QString output_dir;
 
 };
 

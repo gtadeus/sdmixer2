@@ -110,9 +110,9 @@ public:
     PairFinder::min_max getPF_min_maxValues(){return MinMaxValues;}
 
     void nextStage();
+    void getColsAndRows(QString file);
+    QString getOutputDirectory(){return output_directory;}
 
-    int current_stage=0;
-    std::vector<QString>::size_type current_file = 0;
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event);
@@ -137,6 +137,12 @@ private slots:
 
     void on_pushButton_CancelRun_clicked();
 
+    void threadReady();
+
+    void on_pushButton_selectOutputDirectory_clicked();
+
+    void InputFileClicked(QListWidgetItem *item);
+
 private:
 
     std::vector<QString> InputFiles;
@@ -147,8 +153,6 @@ private:
     bool runReconstructor=false;
     bool force2D=false;
     int pixelSizeNM=0;
-
-
 
     static const int max_dims = 3;
     double offset[max_dims]={0};
@@ -173,8 +177,12 @@ private:
 
     PairFinder::min_max MinMaxValues;
 
-    QThread *reconstructor_thread;
-    Reconstructor *r;
+
+    int rawDataCols, rawDataRows;
+    int current_stage=0;
+    std::vector<QString>::size_type current_file = 0;
+
+    QString output_directory="";
 
 
 };

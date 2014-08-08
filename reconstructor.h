@@ -65,11 +65,12 @@ public:
     };
 
     Reconstructor(sdmixer *s,
-                  std::vector<sdmixer::Localization> &PFinput_file,
+                  std::vector<sdmixer::Localization> *data,
                   int current_filter);
     Reconstructor(sdmixer *s, QString xyz_file);
     void run();
     void createKernel();
+    void init(bool getKernelVector, int current_filter=0);
 
     void hist_correct();
     void getIndexFromXYZ();
@@ -101,8 +102,16 @@ private:
     sdmixer *sdm;
     Kernel krn;
 
+    sdmixer::gaussian_kernel globalKernel;
+    std::vector<sdmixer::gaussian_kernel> vecKernel;
     std::vector<Coordinates> xyz;
+    std::vector<sdmixer::Localization> *input_data;
 
+    bool runConvolution;
+    bool oneConvolutionKernel;
+    bool force2D;
+
+    int NM_PER_PX;
 
     float xres = 100;
     float yres = 100;
@@ -112,6 +121,9 @@ private:
     int hist_correct_value;
     int hist_threshold;
 
+    int xCol=0;
+    int yCol=1;
+    int zCol=2;
 
     int dimensions=3;
 

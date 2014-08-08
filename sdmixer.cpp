@@ -595,8 +595,6 @@ void sdmixer::nextStage()
     }
     if (current_stage == 3)
     {
-        /*for(auto i:pf_output)
-            qDebug() << i.filter;
         if( runReconstructor )
         {
             QThread *reconstructor_thread = new QThread;
@@ -607,7 +605,10 @@ void sdmixer::nextStage()
             if(runFilter)
             {
                 if(current_filter <= filter_max)
+                {
                     r = new Reconstructor(this, pf_output, current_filter);
+                    ++current_filter;
+                }
             }
             if(!runPairFinder && !runFilter) // process xyz to simple images
                 r = new Reconstructor(this, InputFiles[current_file]);
@@ -619,7 +620,7 @@ void sdmixer::nextStage()
             connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
             connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
             reconstructor_thread->start();
-        }*/
+        }
         return;
 
     }
@@ -633,6 +634,7 @@ void sdmixer::nextStage()
             qDebug() << current_file;
             current_stage=0;
             current_file = 0;
+            current_filter = 0;
             sdmixer::log(this, "demixing finished!");
             setStartDemixingButtonEnabled(true);
             setCancelRunButtonEnabled(false);
@@ -659,6 +661,11 @@ void sdmixer::on_startDemixing_clicked()
         QString err = error_msg("no input files selected");
         writeToConsole(err);
         return;
+    }
+    if(!FilterFiles.empty() && runFilter)
+    {
+        filter_max = FilterFiles.size();
+        qDebug() << "filter max: " << filter_max;
     }
     output_directory = ui->lineEdit_outputDirectory->text();
     ui->pushButton_CancelRun->setVisible(true);

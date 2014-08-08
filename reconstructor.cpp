@@ -3,16 +3,86 @@
 
 void Reconstructor::doWork()
 {
-    setMinMax(sdm->getPF_min_maxValues());
-    setKernel();
-
     setArray();
-    if(sdm->getRunConvolution())
+    if(runConvolution)
         Convolution();
     map8bit();
     outputTIFF();
 
     emit finished();
+}
+void Reconstructor::init(bool getKernelVector, int current_filter=0)
+{
+    input_file = sdm->getCurrentFile();
+    QFile qf(input_file);
+    QFileInfo fi(qf);
+
+    if(!sdm->getOutputDirectory().isEmpty())
+        output_dir = sdm->getOutputDirectory();
+    else
+        output_dir=fi.path();
+
+    input_base_name = fi.baseName();
+
+    runConvolution=sdm->getRunConvolution();
+    setMinMax(sdm->getPF_min_maxValues());
+    oneConvolutionKernel = sdm->getOneKernelForAllChannels();
+    NM_PER_PX = sdm->getPixelSize();
+    force2D = sdm->getForce2D();
+
+    if(oneConvolutionKernel)
+    {
+        globalKernel = sdm->getGlobalKernel();
+        if(!globalKernel.unitFWHM_xy.compare("px"))
+        {
+            krn.sigma_xy=globalKernel.FWHM_xy*NM_PER_PX / 2.355;
+            krn.sigma_z=globalKernel.FWHM_z*NM_PER_PX / 2.355;
+            if(dimensions==3 && !force2D)
+            {
+                krn.make3D=true;
+                krn.data = new float[krn.size*krn.size*krn.size];
+            }
+            else
+            {
+                krn.make3D=false;
+                krn.data = new float[krn.size*krn.size];
+            }
+            CreateGaussianKernel();
+        }
+    }
+    else
+    {
+        if(getKernelVector)
+        {
+            vecKernel = sdm->getConvolutionKernel();
+            if(!vecKernel.empty())
+            {
+                sdmixer::gaussian_kernel gk = vecKernel[current_filter];
+                if(!gk.unitFWHM_xy.compare("px"))
+                {
+                    krn.sigma_xy=gk.FWHM_xy*NM_PER_PX / 2.355;
+                    krn.sigma_z=gk.FWHM_z*NM_PER_PX / 2.355;
+                }
+                else
+                {
+                    krn.sigma_xy=gk.FWHM_xy / 2.355;
+                    krn.sigma_z=gk.FWHM_z / 2.355;
+
+                }
+                if(dimensions==3 && !force2D)
+                {
+                    krn.make3D=true;
+                    krn.data = new float[krn.size*krn.size*krn.size];
+                }
+                else
+                {
+                    krn.make3D=false;
+                    krn.data = new float[krn.size*krn.size];
+                }
+                CreateGaussianKernel();
+            }
+        }
+    }
 }
 
 void Reconstructor::setArray()
@@ -523,27 +593,77 @@ static bool pred( const std::string &s ) {
 }
 Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
 {
+    init(false);
+    std::vector<double> input;
+    int rawDataCols=0;
+    int rawDataRows=0;
+
+    std::ifstream ifs(xyz_file.toStdString());
+    std::string firstLine, secondLine;
+    getline (ifs, firstLine);
+    getline (ifs, secondLine);
+    ifs.close();
+    //determine column number from second line
+    std::stringstream countColsStream(secondLine);
+    double dd;
+    while (countColsStream >> dd)
+    {
+        ++rawDataCols;
+    }
+
+
+    QFile f(file);
+    f.open(QIODevice::ReadOnly| QIODevice::Text);
+
+    QTextStream in(&f);
+    QString line = in.readLine();
+
+
+    while (!in.atEnd())
+    {
+        line = in.readLine();
+
+        std::vector<std::string> v;
+        std::string str = line.toStdString();
+        boost::split(v, str, boost::is_any_of("\t "));
+
+        for (auto i : v)
+        {
+            input.push_back(strtod(i.c_str(), NULL));
+        }
+    }
+
+    //qDebug() << "total: " << input.size() ;
+    rawDataRows=input.size()/rawDataCols;
+
+    std::vector<double>::iterator it;
+
+    for( it = input.begin(); it != input.end(); ++it)
+    {
+        double d = *it;
+        Coordinates c;
+
+        for(int i = 0; i < )
+    }
 
 }
 
 Reconstructor::Reconstructor(sdmixer *s,
-                             std::vector<sdmixer::Localization>& data,
+                             std::vector<sdmixer::Localization> *data,
                              int current_filter)
 {
     this->sdm = s;
-    input_file = sdm->getCurrentFile();
 
-    QFile qf(input_file);
-    QFileInfo fi(qf);
+    input_data = data;
 
-    if(!sdm->getOutputDirectory().isEmpty())
-        output_dir = sdm->getOutputDirectory();
-    else
-        output_dir=fi.path();
 
-    input_base_name = fi.baseName();
+    init(true, current_filter);
+
+
     tiff_out_file = output_dir.append("/");
     tiff_out_file = tiff_out_file.append(input_base_name);
+    tiff_out_file = tiff_out_file.append("_ch");
+    tiff_out_file = tiff_out_file.append(QString::number(current_filter));
     tiff_out_file.append(".tif");
 
     qDebug() << output_dir;
@@ -553,39 +673,43 @@ Reconstructor::Reconstructor(sdmixer *s,
     binning[1] = s->getReconstructor_xyBinning();
     binning[2] = s->getReconstructor_zBinning();
     int index = 0;
+    std::vector<sdmixer::Localization>::iterator it;
 
-    for (auto loc : data)
+    for( it = input_data->begin(); it != input_data->end(); ++it )
     {
+        sdmixer::Localization loc = *it;
         Coordinates c;
-
-        for(int i = 0; i < dimensions; ++i)
+        if(loc.filter == current_filter)
         {
-            int short_val = round(loc.getShortDim(i)/binning[i]);
-            if (index == 0)
+            for(int i = 0; i < dimensions; ++i)
             {
-                image_min[i]=short_val;
-                image_max[i]=short_val;
-            }
-            c.set(i, short_val);
-            if(image_min[i]>short_val)
+                int short_val = round(loc.getShortDim(i)/binning[i]);
+                if (index == 0)
+                {
                     image_min[i]=short_val;
-            if(image_max[i]<short_val)
-                image_max[i]=short_val;
+                    image_max[i]=short_val;
+                }
+                c.set(i, short_val);
+                if(image_min[i]>short_val)
+                        image_min[i]=short_val;
+                if(image_max[i]<short_val)
+                    image_max[i]=short_val;
 
-            ++index;
-        }
-        xyz.push_back(c);
-        for(int i = 0; i < dimensions; ++i)
-        {
-            int long_val = round(loc.getLongDim(i)/binning[i]);
-            if(image_min[i]>long_val)
-                    image_min[i]=long_val;
-            if(image_max[i]<long_val)
-                image_max[i]=long_val;
+                ++index;
+            }
+            xyz.push_back(c);
+            for(int i = 0; i < dimensions; ++i)
+            {
+                int long_val = round(loc.getLongDim(i)/binning[i]);
+                if(image_min[i]>long_val)
+                        image_min[i]=long_val;
+                if(image_max[i]<long_val)
+                    image_max[i]=long_val;
 
-            c.set(i, long_val);
+                c.set(i, long_val);
+            }
+            xyz.push_back(c);
         }
-        xyz.push_back(c);
 
     }
     for ( int i = 0; i < dimensions; ++i)

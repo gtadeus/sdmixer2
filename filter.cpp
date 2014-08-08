@@ -1,10 +1,23 @@
 #include "filter.h"
-#include "pairfinder.h"
+//#include "pairfinder.h"
 #include <QDebug>
 
-Filter::Filter(sdmixer *s)
+Filter::Filter(sdmixer *s, std::vector<sdmixer::Localization> *data)
 {
     qDebug() << "inititalizing Filter";
+    this->sdm = s;
+    input=data;
+    precision =sdm->getPrecision();
+    maxIntLong = sdm->getMaxIntLong();
+    maxIntShort = sdm->getMaxIntShort();
+
+
+
+
+}
+Filter::Filter(sdmixer *s, QString str)
+{
+    qDebug() << "inititalizing Filter: " << str;
     this->sdm = s;
 
 }
@@ -12,16 +25,59 @@ Filter::Filter(sdmixer *s)
 void Filter::doWork()
 {
     qDebug() << "starting Filter in new Thread";
+    FilterInputFiles = sdm->getFilterFiles();
 
+
+    for ( auto i : FilterInputFiles)
+    {
+        //QImgFilters.push_back(q);
+        int index = 0;
+        QImage img(i);
+    std::vector<sdmixer::Localization>::iterator it;
+    for( it = input->begin(); it != input->end(); ++it )
+    {
+        sdmixer::Localization loc = *it;
+        if(index == 0)
+        {
+            maxIntLongFromFile = loc.LongIntensity;
+            maxIntShortFromFile = loc.ShortIntensity;
+        }
+        if (maxIntLongFromFile < loc.LongIntensity)
+            maxIntLongFromFile = loc.LongIntensity;
+        if(maxIntShortFromFile < loc.ShortIntensity)
+            maxIntShortFromFile = loc.ShortIntensity;
+
+        int longVal = round(loc.LongIntensity*precision);
+        int shortVal = round(loc.ShortIntensity*precision);
+        if( longVal >= maxIntLong )
+            longVal = maxIntLong;
+        if( shortVal >= maxIntShort )
+            shortVal = maxIntShort;
+
+        int current_filter=0;
+
+            ++current_filter;
+
+            QColor clrPixel(img.pixel(shortVal, longVal));
+
+            if (clrPixel.black() != 0)
+                loc.filter=current_filter;
+
+            //qDebug() << shortVal << "  " << longVal << "  " << clrPixel.black() << "  " << loc.filter;
+
+
+        ++index;
+    }
+}
+    qDebug() <<" finished filter";
     emit finished();
 }
 
-void Filter::loadFilterImage(QString path)
+QImage Filter::loadFilterImage(QString path)
 {
 
     QImage img(path);
-    int arr[img.height()][img.width()];
-    std::vector< std::vector < int > > filterImg;
+    /*std::vector< std::vector < int > > filterImg;
 
     if ( !img.isNull())
     {
@@ -36,35 +92,13 @@ void Filter::loadFilterImage(QString path)
             }
             filterImg.push_back(row_vec);
         }
-    }
-
-    std::ofstream out("io3.txt");
-    /*for(int i = 0; i < img.height(); ++i)
-    {
-        for(int j = 0; j < img.width(); ++j)
-        {
-            out << arr[i][j];
-            out << "  ";
-        }
-    out << std::endl;
     }*/
-    for(auto i = filterImg.begin(); i != filterImg.end(); ++i)
-    {
-        for(auto j = i->begin(); j != i->end(); ++j)
-        {
-            out << *j;
-            out << "  ";
-        }
-        out << std::endl;
-    }
-
-
-
+    return img;
 }
 
 void Filter::initializeIntensities()
 {
-    std::vector<PairFinder::Localization> PFOutput;
+    std::vector<sdmixer::Localization> PFOutput;
 
     for (auto &i : PFOutput )
     {

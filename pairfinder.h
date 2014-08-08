@@ -5,10 +5,8 @@
 #include <vector>
 #include <QString>
 #include <QTextStream>
-#include <fcntl.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+
+
 #include <QtXml/QtXml>
 #include <QtXml/QDomDocument>
 
@@ -17,50 +15,14 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-//#include "sdmixer.h"
-class sdmixer;
+#include "sdmixer.h"
+//class sdmixer
 
 
 class PairFinder : public QObject
 {
     Q_OBJECT
 public:
-    struct Localization {
-
-        double xLong, yLong, zLong;
-        double xShort, yShort, zShort;
-        double LongIntensity, ShortIntensity;
-        int frame;
-
-        int filter = 0;
-
-        double getShortDim(int dim)
-        {
-            if ( dim == 0)
-                return xShort;
-            if ( dim == 1)
-                return yShort;
-            if ( dim == 2)
-                return zShort;
-            return 0;
-        }
-        double getLongDim(int dim)
-        {
-            if ( dim == 0)
-                return xLong;
-            if ( dim == 1)
-                return yLong;
-            if ( dim == 2)
-                return zLong;
-            return 0;
-        }
-    };
-    struct min_max {
-        double min_x=0, max_x=0;
-        double min_y=0, max_y=0;
-        double min_z=0, max_z=0;
-
-    };
 
     PairFinder(sdmixer *s, QString f);
     void getHeader();
@@ -75,23 +37,18 @@ public:
         return QString::fromStdString(str);
     }
 
-    void FindPairs(int last_frame=-1);
+    void FindPairs(bool fishing, int last_frame=-1);
     int loadFile();
 
     int getDimensions() {return dimensions;}
 
     int getNrOfDifferentFrames() { return NrOfDifferentFrames; }
     int getMultipleCounter() { return multiple_counter; }
-    min_max getMinMaxValues() { return min_maxValues; }
-
-
+    sdmixer::min_max getMinMaxValues() { return min_maxValues; }
 
     void loadInputFile();
-    void stop(){
-        canceled=true;
-    }
+    void saveFile();
 
-    std::vector<Localization> output_file;
 
 signals:
     void finished();
@@ -100,48 +57,86 @@ public slots:
     void doWork();
 
 private:
+    struct fishing_run{
+        double xOffset;
+        double yOffset;
+        double zOffset;
+        int numpairs;
+        double getOffset(int dim){
+            if(dim==0)
+                return xOffset;
+            if(dim==1)
+                return yOffset;
+            if(dim==2)
+                return zOffset;
+            return 0;
+        }
+        void setOffset(int dim, double val)
+        {
+            if(dim==0)
+                xOffset=val;
+            if(dim==1)
+                yOffset=val;
+            if(dim==2)
+                zOffset=val;
+        }
+
+    };
+
+    //std::vector<sdmixer::Localization> output_file;
     bool canceled=false;
+    // bool _working=false;
+    // bool _abort=false;
+     //QMutex mutex;
+     //bool create_output = false;
+
+    //internal Variables
+    std::vector<fishing_run> fishing_results;
 
     sdmixer *sdm;
-    QString file;
+    QString file, fileName, outputFile;
+    QString PairFinderSuffix = "_pf.out";
+
     std::vector<double> input;
+    int row_stop = 0;
 
-    bool _working=false;
-    bool _abort=false;
-    QMutex mutex;
 
+    // Settings:
+    double NM_PER_PX = 0;
     int dimensions=0;
     double Offset[3]={0};
     double Epsilon[3]={0}; 
 
-    min_max min_maxValues;
-
-    int numpairs = 0;
-
     int xCol = 0;
     int yCol = 1;
     int zCol = 2;
+    int FrameColumn=3;
+    int IntensityColumn=4;
+
+    sdmixer::min_max min_maxValues;
+    sdmixer::fishing fishing_settings;
+    sdmixer::offset_units offset_units;
+    QString output_dir;
 
     bool LeftRight = false;
     int ShortChannel = 1;
 
-    std::vector<int> grouped_rows;
 
-    int FrameColumn=3;
-    int IntensityColumn=4;
+    //Output
+    QString header;
+    int numpairs = 0;
+
+    std::vector<int> grouped_rows;
 
     int NrOfDifferentFrames = 0;
     int multiple_counter = 0;
-    bool create_output = false;
-    int row_stop = 0;
-
     int rawDataCols = 0;
     int rawDataRows = 0;
 
-    double NM_PER_PX = 0;
 
-    QString header;
-    QString output_dir;
+
+
+
 
 };
 

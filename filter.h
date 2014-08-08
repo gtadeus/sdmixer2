@@ -7,15 +7,19 @@
 #include <vector>
 #include <fstream>
 #include "sdmixer.h"
+//#include "pairfinder.h"
 #include <QThread>
+
+//class sdmixer;
 
 class Filter : public QObject
 {
     Q_OBJECT
 public:
-    Filter(sdmixer *s);
+    Filter(sdmixer *s, QString file);
+    Filter(sdmixer *s, std::vector<sdmixer::Localization> *data);
     void run();
-    void loadFilterImage(QString path);
+    QImage loadFilterImage(QString path);
     void initializeIntensities();
     void roundIntensityValues();
     void drawIntensitySpace();
@@ -38,9 +42,14 @@ private:
     int maxIntLong;
     int maxIntShort;
 
+    double maxIntLongFromFile;
+    double maxIntShortFromFile;
+
+    std::vector<sdmixer::Localization> *input;
 
     double precision = 0.1;
     int nr_of_filters = 1;
+
 
     QString pathIntensitySpace;
 

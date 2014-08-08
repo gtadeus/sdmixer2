@@ -1,24 +1,30 @@
 #ifndef RECONSTRUCTOR_H
 #define RECONSTRUCTOR_H
 
-#include <QString>
+#include "sdmixer.h"
+
 #include <tiffio.h>
 #include <boost/iostreams/device/mapped_file.hpp>
-//#include <math.h>
-//#include <complex>
 #include <fftw3.h>
-#include "sdmixer.h"
-//#include "pairfinder.h"
+
+
 #include <QThread>
 #include <QEventLoop>
+#include <QFile>
+#include <QFileInfo>
+#include <QString>
 
-class sdmixer;
-class PairFinder;
+
 
 class Reconstructor : public QObject
 {
     Q_OBJECT
 public:
+
+    void Convolution();
+    void CreateGaussianKernel();
+    void setKernel();
+    int pow2roundup (int x);
     struct Coordinates
     {
         int x;
@@ -46,10 +52,6 @@ public:
         }
 
     };
-    void Convolution();
-    void CreateGaussianKernel();
-    void setKernel();
-    int pow2roundup (int x);
 
 
     struct Kernel {
@@ -63,8 +65,9 @@ public:
     };
 
     Reconstructor(sdmixer *s,
-                  std::vector<PairFinder::Localization> &PFinput_file,
-                  QString filename);
+                  std::vector<sdmixer::Localization> &PFinput_file,
+                  int current_filter);
+    Reconstructor(sdmixer *s, QString xyz_file);
     void run();
     void createKernel();
 
@@ -75,7 +78,7 @@ public:
     void map8bit();
     void setOutputPath();
     void outputTIFF();
-    void setMinMax(PairFinder::min_max m);
+    void setMinMax(sdmixer::min_max m);
 
 
     uint64_t linearIndex(Coordinates c);

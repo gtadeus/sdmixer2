@@ -211,7 +211,7 @@
        <string>Size from Header (nm):</string>
       </property>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -233,7 +233,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
         <x>600</x>
@@ -279,7 +279,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
         <x>600</x>
@@ -376,29 +376,11 @@
       </layout>
      </widget>
      <zorder>layoutWidget</zorder>
+     <zorder>layoutWidget</zorder>
+     <zorder>layoutWidget</zorder>
+     <zorder>layoutWidget</zorder>
      <zorder>listWidget_InputFiles</zorder>
-     <zorder>lineEdit_outputDirectory</zorder>
-     <zorder>pushButton_selectOutputDirectory</zorder>
      <zorder>label_26</zorder>
-     <zorder>label_27</zorder>
-     <zorder>lineEdit_FileInfoDimension</zorder>
-     <zorder>label_28</zorder>
-     <zorder>lineEdit_FileInfoRows</zorder>
-     <zorder>label_29</zorder>
-     <zorder>lineEdit_FileInfoCols</zorder>
-     <zorder>label_30</zorder>
-     <zorder>label_31</zorder>
-     <zorder>lineEdit_FileInfo_xmin</zorder>
-     <zorder>lineEdit_FileInfo_xmax</zorder>
-     <zorder>label_32</zorder>
-     <zorder>label_34</zorder>
-     <zorder>lineEdit_FileInfo_ymax</zorder>
-     <zorder>lineEdit_FileInfo_ymin</zorder>
-     <zorder>label_33</zorder>
-     <zorder>lineEdit_FileInfo_zmin</zorder>
-     <zorder>lineEdit_FileInfo_zmax</zorder>
-     <zorder>label_35</zorder>
-     <zorder>label_36</zorder>
      <zorder>groupBox_7</zorder>
      <zorder>label_27</zorder>
     </widget>
@@ -409,10 +391,10 @@
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>250</x>
         <y>10</y>
-        <width>221</width>
-        <height>301</height>
+        <width>191</width>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
@@ -514,67 +496,14 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>170</y>
-         <width>201</width>
-         <height>86</height>
-        </rect>
-       </property>
-       <layout class="QFormLayout" name="formLayout_3">
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_14">
-          <property name="text">
-           <string>Camera Orientation:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QComboBox" name="comboBox_CameraOrientation">
-          <item>
-           <property name="text">
-            <string>Left-Right</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Top-Bottom</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QComboBox" name="comboBox_ShortChannelPosition"/>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_21">
-          <property name="text">
-           <string>Short Channel Position:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="TextPixelSize">
-          <property name="text">
-           <string>Pixelsize (nm):</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_pixelSizeNM"/>
-        </item>
-       </layout>
-      </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>240</x>
-        <y>10</y>
+        <x>250</x>
+        <y>170</y>
         <width>191</width>
-        <height>301</height>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
@@ -676,13 +605,11 @@
         </item>
        </layout>
       </widget>
-      <zorder>verticalLayoutWidget_2</zorder>
-      <zorder>verticalLayoutWidget_2</zorder>
      </widget>
      <widget class="QGroupBox" name="groupBox_3">
       <property name="geometry">
        <rect>
-        <x>440</x>
+        <x>450</x>
         <y>10</y>
         <width>241</width>
         <height>301</height>
@@ -691,7 +618,7 @@
       <property name="title">
        <string>Auto Offset (&quot;fishing&quot;)</string>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -755,6 +682,72 @@
        </layout>
       </widget>
      </widget>
+     <widget class="QGroupBox" name="groupBox_9">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>231</width>
+        <height>301</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Image Properties</string>
+      </property>
+      <widget class="QWidget" name="layoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>206</width>
+         <height>86</height>
+        </rect>
+       </property>
+       <layout class="QFormLayout" name="formLayout_3">
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_14">
+          <property name="text">
+           <string>Camera Orientation:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QComboBox" name="comboBox_CameraOrientation">
+          <item>
+           <property name="text">
+            <string>Left-Right</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Top-Bottom</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QComboBox" name="comboBox_ShortChannelPosition"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_21">
+          <property name="text">
+           <string>Short Channel Position:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="TextPixelSize">
+          <property name="text">
+           <string>Pixelsize (nm):</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="lineEdit_pixelSizeNM"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
@@ -805,13 +798,13 @@
         <x>280</x>
         <y>90</y>
         <width>251</width>
-        <height>151</height>
+        <height>181</height>
        </rect>
       </property>
       <property name="title">
        <string>Filter Settings</string>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -873,6 +866,19 @@
          <widget class="QLineEdit" name="lineEdit_maxIntLong"/>
         </item>
        </layout>
+      </widget>
+      <widget class="QLabel" name="label_FilterFileInstruction">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>150</y>
+         <width>231</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Filter Files must be </string>
+       </property>
       </widget>
      </widget>
     </widget>
@@ -941,26 +947,13 @@
       <property name="title">
        <string>Gaussian Blur</string>
       </property>
-      <widget class="QCheckBox" name="checkBox_runConvolution">
-       <property name="geometry">
-        <rect>
-         <x>11</x>
-         <y>24</y>
-         <width>123</width>
-         <height>18</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>enable Gaussian Blur</string>
-       </property>
-      </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>100</y>
-         <width>181</width>
-         <height>74</height>
+         <width>183</width>
+         <height>77</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_5">
@@ -1014,30 +1007,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QComboBox" name="comboBox_ConvolutionChannel">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>70</y>
-         <width>131</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_24">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>70</y>
-         <width>49</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Channel:</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="pushButton_saveChannel">
        <property name="geometry">
         <rect>
          <x>120</x>
@@ -1050,13 +1020,42 @@
         <string>Save</string>
        </property>
       </widget>
-      <zorder>checkBox_runConvolution</zorder>
-      <zorder>label_11</zorder>
-      <zorder></zorder>
-      <zorder>comboBox_ConvolutionChannel</zorder>
-      <zorder>label_24</zorder>
-      <zorder>groupBox_6</zorder>
-      <zorder>pushButton</zorder>
+      <widget class="QWidget" name="">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>181</width>
+         <height>81</height>
+        </rect>
+       </property>
+       <layout class="QFormLayout" name="formLayout_4">
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBox_runConvolution">
+          <property name="text">
+           <string>enable Gaussian Blur</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBox_sameKernel">
+          <property name="text">
+           <string>same Kernel for all Channels</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_24">
+          <property name="text">
+           <string>Channel:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QComboBox" name="comboBox_ConvolutionChannel"/>
+        </item>
+       </layout>
+      </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_6">
       <property name="geometry">
@@ -1177,6 +1176,28 @@
       <property name="text">
        <string>Alternative File Header (XML):</string>
       </property>
+     </widget>
+     <widget class="QWidget" name="">
+      <property name="geometry">
+       <rect>
+        <x>301</x>
+        <y>31</y>
+        <width>208</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_5">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_37">
+         <property name="text">
+          <string>Exponential Prefix (min/max from header)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLineEdit" name="lineEdit_exponentialPrefix"/>
+       </item>
+      </layout>
      </widget>
     </widget>
    </widget>

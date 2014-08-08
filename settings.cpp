@@ -47,6 +47,9 @@ Settings::Settings(sdmixer *s)
     setXYBinning(s->getReconstructor_xyBinning());
     setZBinning(s->getReconstructor_zBinning());
     runConvolution = s->getRunConvolution();
+    oneKernelForAllChannels = s->getOneKernelForAllChannels();
+    global_kernel = s->getGlobalKernel();
+    vec_kernel = s->getConvolutionKernel();
     nonLinearHistogramEqual = s->getNonLinearHistEq();
     histeqCoefficient = s->getHisteqCoefficient();
     Threshold = s->getThreshold();
@@ -164,6 +167,12 @@ void Settings::initXML(){
     appendChildNode(reconstructor, "zBinning", zBinning);
     appendChildNode(reconstructor, "nonLinearHistEqual", nonLinearHistogramEqual);
     appendChildNode(reconstructor, "runConvolution", runConvolution);
+    appendChildNode(reconstructor, "oneKernelForAllChannels", oneKernelForAllChannels);
+    appendChildNode(reconstructor, "FWHM_xy", global_kernel.FWHM_xy);
+    appendChildNode(reconstructor, "FWHM_z", global_kernel.FWHM_z);
+    appendChildNode(reconstructor, "unitFWHM_xy", global_kernel.unitFWHM_xy);
+    appendChildNode(reconstructor, "unitFWHM_z", global_kernel.unitFWHM_z);
+
 
     appendChildNode(reconstructor, "correctionCoefficient", histeqCoefficient);
     appendChildNode(reconstructor, "Threshold", Threshold);
@@ -173,13 +182,16 @@ void Settings::initXML(){
     appendChildNode(reconstructor, "startRescliceZ", startRescliceZ);
     appendChildNode(reconstructor, "endRescliceZ", endRescliceZ);
 
-    for(int i = 0; i < 2; ++i)
+    std::vector<sdmixer::gaussian_kernel>::iterator it;
+    for( it = vec_kernel.begin(); it != vec_kernel.end(); ++it)
     {
         QDomElement qdConvKernel = createField("ConvolutionKernel");
-
-        appendChildNode(qdConvKernel, "FilterFile", "filter1.png");
-        appendChildNode(qdConvKernel, "FWHM_xy", 1);
-        appendChildNode(qdConvKernel, "FWHM_z", 2);
+        sdmixer::gaussian_kernel gk=*it;
+        appendChildNode(qdConvKernel, "FilterFile", gk.filterName);
+        appendChildNode(qdConvKernel, "FWHM_xy", gk.FWHM_xy);
+        appendChildNode(qdConvKernel, "FWHM_z", gk.FWHM_z);
+        appendChildNode(qdConvKernel, "FWHM_xy_unit", gk.unitFWHM_xy);
+        appendChildNode(qdConvKernel, "FWHM_z_unit", gk.unitFWHM_z);
         reconstructor.appendChild(qdConvKernel);
     }
 
@@ -430,6 +442,59 @@ void Settings::loadFromFile(QString file){
                     if (f.attribute("name") == "endRescliceZ")
                     {
                         endRescliceZ = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "oneKernelForAllChannels")
+                    {
+                        oneKernelForAllChannels = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "FWHM_xy")
+                    {
+                        global_kernel.FWHM_xy = f.attribute("number").toDouble();
+                    }
+                    if (f.attribute("name") == "FWHM_z")
+                    {
+                        global_kernel.FWHM_z = f.attribute("number").toDouble();
+                    }
+                    if (f.attribute("name") == "unitFWHM_xy")
+                    {
+                        global_kernel.unitFWHM_xy = f.attribute("string");
+                    }
+                    if (f.attribute("name") == "unitFWHM_z")
+                    {
+                        global_kernel.unitFWHM_z = f.attribute("string");
+                    }
+                    if(f.attribute("name") == "ConvolutionKernel")
+                    {
+                        sdmixer::gaussian_kernel gk;
+                        QDomElement ff = f.toElement();
+                        //qDebug() << "hier";
+                        for(QDomNode mm = ff.firstChild(); !mm.isNull(); mm = mm.nextSibling())
+                        {
+                            //qDebug() << "hier";
+                            QDomElement nn = mm.toElement();
+                            if (nn.attribute("name") == "FilterFile")
+                            {
+                                gk.filterName = nn.attribute("string");
+                                qDebug() << gk.filterName;
+                            }
+                            if (nn.attribute("name") == "FWHM_xy")
+                            {
+                                gk.FWHM_xy = nn.attribute("number").toDouble();
+                            }
+                            if (nn.attribute("name") == "FWHM_z")
+                            {
+                                gk.FWHM_z = nn.attribute("number").toDouble();
+                            }
+                            if (nn.attribute("name") == "FWHM_xy_unit")
+                            {
+                                gk.unitFWHM_xy = nn.attribute("string");
+                            }
+                            if (nn.attribute("name") == "FWHM_z_unit")
+                            {
+                                gk.unitFWHM_z = nn.attribute("string");
+                            }
+                        }
+                        vec_kernel.push_back(gk);
                     }
                 }
             }

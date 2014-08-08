@@ -1,6 +1,7 @@
 #include "sdmixer.h"
 
-//#include "reconstructor.h"
+#include "pairfinder.h"
+#include "reconstructor.h"
 #include "filter.h"
 #include "ui_sdmixer.h"
 #include "settings.h"
@@ -27,19 +28,36 @@ sdmixer::sdmixer(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::sdmixer)
 {
+    pf_output = new std::vector<Localization>();
+
     ui->setupUi(this);
     setAcceptDrops(true);
     ui->pushButton_CancelRun->setVisible(false);
 
     listWidgetInputFiles = ui->listWidget_InputFiles;
+
+    // get Info for selected Input File
     connect(listWidgetInputFiles, SIGNAL(itemClicked(QListWidgetItem*)),
             this, SLOT(InputFileClicked(QListWidgetItem*)));
+    // Camera Orientation is changed, ->Fill Top/Bottom Left/Right Combobox
     connect(ui->comboBox_CameraOrientation, SIGNAL(highlighted(QString)),
             this, SLOT(CameraOrientationChanged(QString)));
-    connect(ui->comboBox_ShortChannelPosition, SIGNAL(highlighted(QString)),
-                    this, SLOT(ShortChannelPositionChanged(QString)));
-    connect(ui->comboBox_FilterOrientation, SIGNAL(highlighted(QString)),
-            this, SLOT(FilterOrientatioChanged(QString)));
+
+    connect(ui->lineEdit_maxIntLong, SIGNAL(textChanged(QString)),
+            this, SLOT(filterInfo(QString)));
+    connect(ui->lineEdit_maxIntShort, SIGNAL(textChanged(QString)),
+            this, SLOT(filterInfo(QString)));
+    connect(ui->lineEdit_precision, SIGNAL(textChanged(QString)),
+            this, SLOT(filterInfo(QString)));
+    connect(ui->comboBox_FilterOrientation, SIGNAL(currentIndexChanged(QString)),
+            this, SLOT(filterInfo(QString)));
+
+    connect(ui->listWidget_FilterFiles, SIGNAL(currentRowChanged(int)),
+            this, SLOT(loadKernel(int)));
+    connect(ui->comboBox_ConvolutionChannel, SIGNAL(highlighted(QString)),
+            this, SLOT(KernelChannelHighlighted(QString)));
+    connect(ui->checkBox_sameKernel, SIGNAL(stateChanged(int)),
+            this, SLOT(SameKernelCheckBoxChanged(int)));
 
     UpdateShortPositionComboBox(ui->comboBox_CameraOrientation->itemText(0));
 
@@ -64,6 +82,93 @@ sdmixer::sdmixer(QWidget *parent) :
     }
 
 }
+void sdmixer::KernelChannelHighlighted(QString str)
+{
+    qDebug() << "KernelChannelHighlighted " << str;
+
+    std::vector<gaussian_kernel>::iterator it;
+
+    bool foundIt=false;
+
+    for( it = vec_kernel.begin(); it != vec_kernel.end(); ++it)
+    {
+        gaussian_kernel gk = *it;
+        if(!gk.filterName.compare(str))
+        {
+            foundIt=true;
+            ui->lineEdit_FWHMxy->setText(QString::number(gk.FWHM_xy));
+            ui->lineEdit_FWHMz->setText(QString::number(gk.FWHM_z));
+            ui->comboBox_FWHM_xy->setCurrentText(gk.unitFWHM_xy);
+            ui->comboBox_FWHM_z->setCurrentText(gk.unitFWHM_z);
+        }
+
+    }
+    if(!foundIt)
+    {
+        ui->lineEdit_FWHMxy->setText("");
+        ui->lineEdit_FWHMz->setText("");
+        ui->comboBox_FWHM_xy->setCurrentText("");
+        ui->comboBox_FWHM_z->setCurrentText("");
+    }
+
+}
+
+void sdmixer::SameKernelCheckBoxChanged(int state)
+{
+    if(ui->checkBox_sameKernel->isChecked())
+    {
+        ui->comboBox_ConvolutionChannel->setEnabled(false);
+        ui->pushButton_saveChannel->setVisible(false);
+    }
+    else
+    {
+        ui->comboBox_ConvolutionChannel->setEnabled(true);
+        ui->pushButton_saveChannel->setVisible(true);
+    }
+}
+
+void sdmixer::loadKernel(int a)
+{
+qDebug() << "loadKernel";
+    FilterFiles.clear();
+    //qDeleteAll(ui->comboBox_ConvolutionChannel->set);
+    ui->comboBox_ConvolutionChannel->clear();
+    //qDebug() << ui->listWidget_FilterFiles->count();
+    for(int i = 0; i < ui->listWidget_FilterFiles->count(); ++i)
+    {
+        QListWidgetItem* item = ui->listWidget_FilterFiles->item(i);
+        qDebug()<< item->text();
+        FilterFiles.push_back(item->text());
+        QFileInfo fi(item->text());
+
+        ui->comboBox_ConvolutionChannel->addItem(fi.baseName());
+    }
+
+
+    std::vector<gaussian_kernel>::iterator it=vec_kernel.begin();
+    for( ; it != vec_kernel.end();)
+    {
+        bool stillExists=false;
+        gaussian_kernel gk = *it;
+        for(int i = 0; i < ui->comboBox_ConvolutionChannel->count(); ++i)
+        {
+            QString item = ui->comboBox_ConvolutionChannel->itemText(i);
+            //qDebug()<< item;
+            QFileInfo fi(item);
+            QString baseName = fi.baseName();
+            if(!gk.filterName.compare(baseName))
+            {
+                stillExists=true;
+            }
+        }
+        if(!stillExists)
+            vec_kernel.erase(it);
+        else
+            ++it;
+    }
+
+}
+
 void sdmixer::UpdateShortPositionComboBox(QString str)
 {
     //if(str.compare(ui->comboBox_CameraOrientation->currentText()))
@@ -88,6 +193,22 @@ void sdmixer::CameraOrientationChanged(QString str)
 {
     UpdateShortPositionComboBox(str);
 }
+void sdmixer::filterInfo(QString str)
+{
+    maxIntensityLong =  QString(ui->lineEdit_maxIntLong->text()).toDouble();
+    maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
+    precision = QString(ui->lineEdit_precision->text()).toDouble();
+    FilterOrientation = ui->comboBox_FilterOrientation->currentText();
+    std::stringstream ss;
+    if (!FilterOrientation.compare("x=Short, y=Long"))
+        ss <<"Filter files must be " << round(maxIntensityShort*precision) << " x " <<
+         round(maxIntensityLong*precision) << " px";
+    else
+        ss <<"Filter files must be " << round(maxIntensityLong*precision) << " x " <<
+         round(maxIntensityShort*precision) << " px";
+
+    ui->label_FilterFileInstruction->setText(QString::fromStdString(ss.str()));
+}
 
 
 void sdmixer::InputFileClicked(QListWidgetItem *item)
@@ -97,12 +218,12 @@ void sdmixer::InputFileClicked(QListWidgetItem *item)
 
     PairFinder pf(this, item->text());
     ui->lineEdit_FileInfoDimension->setText(QString::number(pf.getDimensions()));
-    ui->lineEdit_FileInfo_xmin->setText(QString::number(pf.getMinMaxValues().min_x));
-    ui->lineEdit_FileInfo_xmax->setText(QString::number(pf.getMinMaxValues().max_x));
-    ui->lineEdit_FileInfo_ymin->setText(QString::number(pf.getMinMaxValues().min_y));
-    ui->lineEdit_FileInfo_ymax->setText(QString::number(pf.getMinMaxValues().max_y));
-    ui->lineEdit_FileInfo_zmin->setText(QString::number(pf.getMinMaxValues().min_z));
-    ui->lineEdit_FileInfo_zmax->setText(QString::number(pf.getMinMaxValues().max_z));
+    ui->lineEdit_FileInfo_xmin->setText(QString::number(pf.getMinMaxValues().min_x*1e9));
+    ui->lineEdit_FileInfo_xmax->setText(QString::number(pf.getMinMaxValues().max_x*1e9));
+    ui->lineEdit_FileInfo_ymin->setText(QString::number(pf.getMinMaxValues().min_y*1e9));
+    ui->lineEdit_FileInfo_ymax->setText(QString::number(pf.getMinMaxValues().max_y*1e9));
+    ui->lineEdit_FileInfo_zmin->setText(QString::number(pf.getMinMaxValues().min_z*1e9));
+    ui->lineEdit_FileInfo_zmax->setText(QString::number(pf.getMinMaxValues().max_z*1e9));
     getColsAndRows(item->text());
     ui->lineEdit_FileInfoCols->setText(QString::number(rawDataCols));
     ui->lineEdit_FileInfoRows->setText(QString::number(rawDataRows));
@@ -202,40 +323,14 @@ bool sdmixer::getSettingsFromUI()
 
     pixelSizeNM = QString(ui->lineEdit_pixelSizeNM->text()).toInt();
 
-    QString temp;
-    temp = ui->lineEdit_xOffset->text();
-    if( !temp.isEmpty() )
-    {
-        offset[0]=temp.toDouble();
-        temp = ui->lineEdit_yOffset->text();
-        if( ! temp.isEmpty() )
-        {
-            offset[1]=temp.toDouble();
-            temp = ui->lineEdit_zOffset->text();
+    offset[0] = ui->lineEdit_xOffset->text().toDouble();
+    offset[1] = ui->lineEdit_yOffset->text().toDouble();
+    offset[2] = ui->lineEdit_zOffset->text().toDouble();
+    epsilon[0] = ui->lineEdit_xEpsilon->text().toDouble();
+    epsilon[1] = ui->lineEdit_yEpsilon->text().toDouble();
+    epsilon[2] = ui->lineEdit_zEpsilon->text().toDouble();
 
-            if( ! temp.isEmpty() )
-            {
-                offset[2]=temp.toDouble();
-            }
-        }
-    }
 
-    temp = ui->lineEdit_xEpsilon->text();
-    if( !temp.isEmpty() )
-    {
-        epsilon[0]=temp.toDouble();
-        temp = ui->lineEdit_yEpsilon->text();
-        if( ! temp.isEmpty() )
-        {
-            epsilon[1]=temp.toDouble();
-            temp = ui->lineEdit_zEpsilon->text();
-
-            if( ! temp.isEmpty() )
-            {
-                epsilon[2]=temp.toDouble();
-            }
-        }
-    }
 
     fishingSettings.run = ui->checkBox_runFishing->isChecked() ;
     fishingSettings.increment = QString(ui->lineEdit_FishingIncrement->text()).toDouble();
@@ -271,10 +366,24 @@ bool sdmixer::getSettingsFromUI()
     xyBinning = QString(ui->lineEdit_xyBinning->text()).toDouble();
     zBinning = QString(ui->lineEdit_zBinning->text()).toDouble();
     runConvolution = ui->checkBox_runConvolution->isChecked();
+    //Convolution Kernel
+    oneKernelForAllChannels = ui->checkBox_sameKernel->isChecked();
+    if(oneKernelForAllChannels)
+    {
+        globalKernel.filterName = "global";
+        globalKernel.FWHM_xy = QString(ui->lineEdit_FWHMxy->text()).toDouble();
+        globalKernel.FWHM_z = QString(ui->lineEdit_FWHMz->text()).toDouble();
+        globalKernel.unitFWHM_xy = ui->comboBox_FWHM_xy->currentText();
+        globalKernel.unitFWHM_z = ui->comboBox_FWHM_z->currentText();
+    }
+    //loadKernel(ui->comboBox_ConvolutionChannel->currentIndex());
+
     nonLinearHistogramEqual = ui->checkBox_HistEq->isChecked();
     histeqCoefficient = QString(ui->lineEdit_CorrectionCoefficient->text()).toDouble();
     Threshold = QString(ui->lineEdit_Threshold->text()).toDouble();
     sqrtCummulation = ui->checkBox_sqrtCum->isChecked();
+
+
 
     LZWCompression = ui->checkBox_LZWCompression->isChecked();
     ResliceZ = ui->checkBox_scliceZ->isChecked();
@@ -297,7 +406,7 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_pixelSizeNM->setText(QString::number(s.getPixelSizeNM()));
     ui->checkBox_runPairFinder->setChecked(s.getRunPairFinder());
     ui->checkBox_runFilter->setChecked(s.getRunFilter());
-    ui->checkBox_runPairFinder->setChecked(s.getRunReconstructor());
+    ui->checkBox_runReconstructor->setChecked(s.getRunReconstructor());
     ui->checkBox_force2D->setChecked(s.getForce2D());
 
 
@@ -353,6 +462,23 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_xyBinning->setText(QString::number(s.getXYbinning()));
     ui->lineEdit_zBinning->setText(QString::number(s.getZbinning()));
     ui->checkBox_runConvolution->setChecked(s.getRunConvolution());
+
+    ui->checkBox_sameKernel->setChecked(s.getOneKernelForAllChannels());
+
+    vec_kernel.clear();
+    vec_kernel=s.getConvolutionKernel();
+    gaussian_kernel gk;
+    if(!vec_kernel.empty() && !s.getOneKernelForAllChannels())
+        gk = vec_kernel[0];
+    else
+        gk = s.getGlobalKernel();
+
+    ui->comboBox_ConvolutionChannel->setCurrentText(gk.filterName);
+    ui->lineEdit_FWHMxy->setText(QString::number(gk.FWHM_xy));
+    ui->lineEdit_FWHMz->setText(QString::number(gk.FWHM_z));
+    ui->comboBox_FWHM_xy->setCurrentText(gk.unitFWHM_xy);
+    ui->comboBox_FWHM_z->setCurrentText(gk.unitFWHM_z);
+
     ui->checkBox_HistEq->setChecked(s.getNonLinearHistEq());
     ui->lineEdit_CorrectionCoefficient->
             setText(QString::number(s.getCorrectionCoefficient()));
@@ -385,12 +511,17 @@ void sdmixer::dropEvent(QDropEvent *e){
     foreach (const QUrl &url, e->mimeData()->urls()) {
         const QString &fileName = url.toLocalFile();
         qDebug() << "Dropped file:" << fileName;
-        insertItem(fileName, listWidgetInputFiles);
+        QFileInfo fi(fileName);
+        if(!fi.completeSuffix().compare("png"))
+            insertItem(fileName, listWidgetFilters);
+        else
+            insertItem(fileName, listWidgetInputFiles);
 
     }
 }
 void sdmixer::insertItem(QString filename, QListWidget *list){
     QListWidgetItem *item = new QListWidgetItem(QIcon(filename), filename, list);
+    list->setCurrentItem(item);
 }
 
 void sdmixer::on_actionQuit_triggered(){
@@ -423,52 +554,72 @@ void sdmixer::nextStage()
     qDebug() << "current_stage:" << current_stage;
     if(current_stage == 1)
     {
-        QThread *pairfinder_thread = new QThread;
-        PairFinder *pf = new PairFinder(this, InputFiles[current_file]);
-        //PairFinder p(this, InputFiles[current_file]);
+        if ( runPairFinder )
+        {
+            QThread *pairfinder_thread = new QThread;
+            PairFinder *pf;
+            pf = new PairFinder(this, InputFiles[current_file]);
+            //PairFinder p(this, InputFiles[current_file]);
 
-        pf->moveToThread(pairfinder_thread);
-        connect(pairfinder_thread, SIGNAL(started()), pf, SLOT(doWork()));
-        connect(pf, SIGNAL(finished()), pairfinder_thread, SLOT(quit()));
-        connect(pf, SIGNAL(finished()), pf, SLOT(deleteLater()));
-        connect(pairfinder_thread, SIGNAL(finished()), pairfinder_thread, SLOT(deleteLater()));
-        connect(pf, SIGNAL(finished()), this, SLOT(threadReady()));
-        pairfinder_thread->start();
+            pf->moveToThread(pairfinder_thread);
+            connect(pairfinder_thread, SIGNAL(started()), pf, SLOT(doWork()));
+            connect(pf, SIGNAL(finished()), pairfinder_thread, SLOT(quit()));
+            connect(pf, SIGNAL(finished()), pf, SLOT(deleteLater()));
+            connect(pairfinder_thread, SIGNAL(finished()), pairfinder_thread, SLOT(deleteLater()));
+            connect(pf, SIGNAL(finished()), this, SLOT(threadReady()));
+            pairfinder_thread->start();
+        }
         return;
 
     }
     if(current_stage == 2)
     {
-        QThread *filter_thread = new QThread;
-        Filter *f = new Filter(this);
+        if ( runFilter )
+        {
+            QThread *filter_thread = new QThread;
+            Filter *f;
+            if( runPairFinder )
+                f = new Filter(this, pf_output);
+            else
+                f = new Filter(this, InputFiles[current_file]);
 
-        f->moveToThread(filter_thread);
-        connect(filter_thread, SIGNAL(started()), f, SLOT(doWork()));
-        connect(f, SIGNAL(finished()), filter_thread, SLOT(quit()));
-        connect(f, SIGNAL(finished()), f, SLOT(deleteLater()));
-        connect(filter_thread, SIGNAL(finished()), filter_thread, SLOT(deleteLater()));
-        connect(f, SIGNAL(finished()),this, SLOT(threadReady()));
-        filter_thread->start();
-
+            f->moveToThread(filter_thread);
+            connect(filter_thread, SIGNAL(started()), f, SLOT(doWork()));
+            connect(f, SIGNAL(finished()), filter_thread, SLOT(quit()));
+            connect(f, SIGNAL(finished()), f, SLOT(deleteLater()));
+            connect(filter_thread, SIGNAL(finished()), filter_thread, SLOT(deleteLater()));
+            connect(f, SIGNAL(finished()),this, SLOT(threadReady()));
+            filter_thread->start();
+        }
         return;
     }
     if (current_stage == 3)
     {
-        QThread *reconstructor_thread;
-        Reconstructor *r;
-        //Reconstructor r(this, pf_output);
+        /*for(auto i:pf_output)
+            qDebug() << i.filter;
+        if( runReconstructor )
+        {
+            QThread *reconstructor_thread = new QThread;
+            Reconstructor *r;
 
-        reconstructor_thread = new QThread;
-        r = new Reconstructor(this, pf_output, InputFiles[current_file]);
+            if(runPairFinder && !runFilter) // Take all
+                r = new Reconstructor(this, pf_output, 0);
+            if(runFilter)
+            {
+                if(current_filter <= filter_max)
+                    r = new Reconstructor(this, pf_output, current_filter);
+            }
+            if(!runPairFinder && !runFilter) // process xyz to simple images
+                r = new Reconstructor(this, InputFiles[current_file]);
 
-        r->moveToThread(reconstructor_thread);
-        connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
-        connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
-        connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
-        connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
-        connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
-        reconstructor_thread->start();
-
+            r->moveToThread(reconstructor_thread);
+            connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
+            connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
+            connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
+            connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
+            connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
+            reconstructor_thread->start();
+        }*/
         return;
 
     }
@@ -530,6 +681,8 @@ void sdmixer::on_actionAbout_sdmixer_triggered()
 void sdmixer::on_removeFilterButton_clicked()
 {
     qDeleteAll(listWidgetFilters->selectedItems());
+    //ui->listWidget_FilterFiles->setCurrentRow(0);
+    loadKernel(0);
 }
 
 void sdmixer::on_removeFilesButton_clicked()
@@ -596,3 +749,51 @@ void sdmixer::on_pushButton_selectOutputDirectory_clicked()
 
 }
 
+
+void sdmixer::on_pushButton_saveChannel_clicked()
+{
+
+    if(! vec_kernel.empty())
+    {
+        std::vector<gaussian_kernel>::iterator it = vec_kernel.begin();
+        for( ; it != vec_kernel.end();)
+        {
+            if(!it->filterName.compare(ui->comboBox_ConvolutionChannel->currentText()))
+            {
+                gaussian_kernel gk = *it;
+                qDebug() <<" found it " << gk.filterName;
+                vec_kernel.erase(it);
+                gk.filterName=ui->comboBox_ConvolutionChannel->currentText();
+                gk.FWHM_xy=ui->lineEdit_FWHMxy->text().toDouble();
+                gk.FWHM_z=ui->lineEdit_FWHMz->text().toDouble();
+                gk.unitFWHM_xy=ui->comboBox_FWHM_xy->currentText();
+                gk.unitFWHM_z=ui->comboBox_FWHM_z->currentText();
+                qDebug() << "not empty saved " << gk.filterName << " " << gk.FWHM_xy << " and " << gk.FWHM_z;
+                vec_kernel.push_back(gk);
+                //pushBackKernel(gk);
+
+                qDebug() << "test";
+                return;
+            }
+            else
+            {
+                it++;
+            }
+        }
+    }
+
+        qDebug() << ui->comboBox_ConvolutionChannel->currentText();
+        gaussian_kernel gk2;
+        gk2.filterName=ui->comboBox_ConvolutionChannel->currentText();
+        gk2.FWHM_xy=ui->lineEdit_FWHMxy->text().toDouble();
+        gk2.FWHM_z=ui->lineEdit_FWHMz->text().toDouble();
+        gk2.unitFWHM_xy=ui->comboBox_FWHM_xy->currentText();
+        gk2.unitFWHM_z=ui->comboBox_FWHM_z->currentText();
+        qDebug() << "empty saved " << gk2.filterName << " " << gk2.FWHM_xy << " and " << gk2.FWHM_z << " and " << gk2.unitFWHM_xy << " and " << gk2.unitFWHM_z;
+
+
+        vec_kernel.push_back(gk2);
+        //pushBackKernel(gk2);
+
+    qDebug() << "test2";
+}

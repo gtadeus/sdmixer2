@@ -12,11 +12,18 @@
 #include <QTextEdit>
 #include <QTextStream>
 #include <ctime>
-#include "pairfinder.h"
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <fcntl.h>
+/*#include "pairfinder.h"
 #include "reconstructor.h"
-class Reconstructor;
+class Reconstructor;*/
 
 class Settings;
+class PairFinder;
+
 
 namespace Ui {
 class sdmixer;
@@ -69,6 +76,42 @@ public:
         std::ostringstream m_SS;
         std::string msg;
     };
+    struct Localization {
+
+        double xLong, yLong, zLong;
+        double xShort, yShort, zShort;
+        double LongIntensity, ShortIntensity;
+        int frame;
+
+        int filter = 0;
+
+        double getShortDim(int dim)
+        {
+            if ( dim == 0)
+                return xShort;
+            if ( dim == 1)
+                return yShort;
+            if ( dim == 2)
+                return zShort;
+            return 0;
+        }
+        double getLongDim(int dim)
+        {
+            if ( dim == 0)
+                return xLong;
+            if ( dim == 1)
+                return yLong;
+            if ( dim == 2)
+                return zLong;
+            return 0;
+        }
+    };
+    struct min_max {
+        double min_x=0, max_x=0;
+        double min_y=0, max_y=0;
+        double min_z=0, max_z=0;
+
+    };
 
     enum camera_orientation_t{
         LEFT_RIGHT,
@@ -110,12 +153,21 @@ public:
         }
     };
 
+    struct gaussian_kernel{
+        double FWHM_xy;
+        double FWHM_z;
+        QString unitFWHM_xy;
+        QString unitFWHM_z;
+        QString filterName;
+    };
+
 
     explicit sdmixer(QWidget *parent = 0);
     ~sdmixer();
 
     // multithread
     void nextStage();
+    QString getCurrentFile(){ return InputFiles[current_file]; }
 
     // logging:
     QString timestamp();
@@ -145,13 +197,13 @@ public:
 
     int getPixelSize(){return this->pixelSizeNM;}
     double getOffset(int dim){
-        qDebug() << "offset " << dim << ": " <<offset[dim];
+        //qDebug() << "sdmixer : offset " << dim << ": " <<offset[dim];
         return offset[dim];
     }
     double getEpsilon(int dim){
-        qDebug()<<" epsilon " << dim << ": " << epsilon[dim];
+        //qDebug()<<"sdmixer: epsilon " << dim << ": " << epsilon[dim];
         return epsilon[dim];}
-    sdmixer::fishing getFishing(){return this->fishingSettings;}
+    fishing getFishing(){return this->fishingSettings;}
     offset_units getOffsetUnits(){return this->offsetUnits;}
     QString getCameraOrientation() { return this->CameraOrientation;}
     QString getShortChannelPosition() { return this->ShortChannelPosition;}
@@ -167,6 +219,9 @@ public:
     double getReconstructor_xyBinning(){return this->xyBinning;}
     double getReconstructor_zBinning(){return this->zBinning;}
     bool getRunConvolution() { return this->runConvolution; }
+    bool getOneKernelForAllChannels() { return oneKernelForAllChannels;}
+    gaussian_kernel getGlobalKernel() {return globalKernel; }
+    std::vector<gaussian_kernel> getConvolutionKernel(){ return vec_kernel;}
     bool getNonLinearHistEq(){return this->nonLinearHistogramEqual;}
     double getHisteqCoefficient() { return histeqCoefficient;}
     double getThreshold() { return Threshold;}
@@ -178,20 +233,21 @@ public:
 
 
     // save Pairfinder Data
-    void pushBackLocalization(PairFinder::Localization l)
+    void pushBackLocalization(Localization l)
     {
-        pf_output.push_back(l);
+        pf_output->push_back(l);
     }
     // save min/max from header from pairfinder run for later
-    void setPF_min_maxValues(PairFinder::min_max m){MinMaxValues=m;}
-    PairFinder::min_max getPF_min_maxValues(){return MinMaxValues;}
+    void setPF_min_maxValues(min_max m){MinMaxValues=m;}
+    min_max getPF_min_maxValues(){return MinMaxValues;}
 
-
+    //void pushBackKernel(gaussian_kernel gk){ vec_kernel.push_back(gk); }
 
 
     std::map<camera_orientation_t, QString> cam_orient;
     std::map<short_channel_position_t, QString> short_pos;
     std::map<filter_orientation_t, QString> filter_orient;
+
 
 
 
@@ -232,10 +288,17 @@ private slots:
 
     void InputFileClicked(QListWidgetItem *item);
     void CameraOrientationChanged(QString str);
+    void filterInfo(QString str);
+    void loadKernel(int a);
+    void SameKernelCheckBoxChanged(int state);
+    void KernelChannelHighlighted(QString str);
 
+
+    void on_pushButton_saveChannel_clicked();
 
 private:
-    std::vector<PairFinder::Localization> pf_output;
+    std::vector<gaussian_kernel> vec_kernel;
+    std::vector<Localization> *pf_output;
 
     static const int max_dims = 3;
     // Settings
@@ -250,6 +313,7 @@ private:
 
     double offset[max_dims]={0};
     double epsilon[max_dims]={0};
+
     fishing fishingSettings;
     QString CameraOrientation;
     QString ShortChannelPosition;
@@ -264,6 +328,8 @@ private:
     double xyBinning=0;
     double zBinning=0;
     bool runConvolution;
+    bool oneKernelForAllChannels;
+    gaussian_kernel globalKernel;
     bool nonLinearHistogramEqual;
     double histeqCoefficient;
     double Threshold;
@@ -282,11 +348,13 @@ private:
     QListWidget *listWidgetFilters;
     QTextEdit *console;
 
-    PairFinder::min_max MinMaxValues;
+    min_max MinMaxValues;
 
 
     int rawDataCols, rawDataRows;
     int current_stage=0;
+    int current_filter=0;
+    int filter_max;
     std::vector<QString>::size_type current_file = 0;
 
 

@@ -44,11 +44,12 @@ public:
     void setRunConvolution(bool val){this->runConvolution=val;}
 
 
+
     std::vector<QString> getInputFiles() {return InputFiles;}
     int getPixelSizeNM(){return pixelSizeNM;}
     bool getRunPairFinder(){return runPairFinder;}
     bool getRunFilter(){return runFilter;}
-    bool getRunReconstructor(){return runPairFinder;}
+    bool getRunReconstructor(){return runReconstructor;}
     bool getForce2D(){return force2D;}
     QString getOutputDirectory(){return output_directory;}
 
@@ -78,6 +79,9 @@ public:
     double getXYbinning(){return xyBinning;}
     double getZbinning(){return zBinning;}
     bool getRunConvolution() { return runConvolution;}
+    bool getOneKernelForAllChannels() { return oneKernelForAllChannels; }
+    sdmixer::gaussian_kernel getGlobalKernel() {return global_kernel;}
+    std::vector<sdmixer::gaussian_kernel> getConvolutionKernel() { return vec_kernel;}
     bool getNonLinearHistEq() { return nonLinearHistogramEqual;}
     double getCorrectionCoefficient() {return histeqCoefficient;}
     double getThreshold() { return Threshold;}
@@ -116,6 +120,9 @@ private:
     double xyBinning=0;
     double zBinning=0;
     bool runConvolution;
+    bool oneKernelForAllChannels;
+    sdmixer::gaussian_kernel global_kernel;
+    std::vector<sdmixer::gaussian_kernel> vec_kernel;
     bool nonLinearHistogramEqual;
     double histeqCoefficient;
     double Threshold;

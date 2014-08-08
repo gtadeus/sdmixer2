@@ -1,4 +1,5 @@
 #include "reconstructor.h"
+#include "sdmixer.h"
 
 void Reconstructor::doWork()
 {
@@ -429,7 +430,7 @@ uint64_t Reconstructor::linearIndexTIFF( int i, int j, int k, int img_sizeX, int
 }
 
 
-void Reconstructor::setMinMax(PairFinder::min_max m)
+void Reconstructor::setMinMax(sdmixer::min_max m)
 {
     // min max, convert from m to nm
     double min_val[3]={0};
@@ -520,12 +521,17 @@ void Reconstructor::getIndexFromXYZ()
 static bool pred( const std::string &s ) {
   // ...
 }
-Reconstructor::Reconstructor(sdmixer *s,
-                             std::vector<PairFinder::Localization>& data,
-                             QString filename)
+Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
 {
-    input_file = filename;
+
+}
+
+Reconstructor::Reconstructor(sdmixer *s,
+                             std::vector<sdmixer::Localization>& data,
+                             int current_filter)
+{
     this->sdm = s;
+    input_file = sdm->getCurrentFile();
 
     QFile qf(input_file);
     QFileInfo fi(qf);

@@ -322,6 +322,7 @@ void PairFinder::getHeader(QString header_file)
     qd.setContent(header);
 
     QDomElement element = qd.documentElement();
+    dimensions=0;
 
     for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
     {

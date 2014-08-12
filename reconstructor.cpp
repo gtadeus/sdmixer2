@@ -275,8 +275,37 @@ void Reconstructor::doWork()
 
     bool repeat =true;
 
+    if(tiff_out_file.isEmpty())
+    {
+        input_file = sdm->getCurrentFile();
+        QFile qf(input_file);
+        QFileInfo fi(qf);
+
+        if(!sdm->getOutputDirectory().isEmpty())
+            output_dir = sdm->getOutputDirectory();
+        else
+            output_dir=fi.path();
+
+        input_base_name = fi.baseName();
+        if(input_base_name.contains("_pairs_out"))
+            input_base_name.replace("_pairs_out", "");
+        if(input_base_name.contains("_filter_out"))
+            input_base_name.replace("_filter_out", "");
+
+        tiff_out_file = output_dir.append("/");
+        tiff_out_file = tiff_out_file.append(input_base_name);
+        if(FilterInput)
+        {
+            tiff_out_file = tiff_out_file.append("_ch");
+            tiff_out_file = tiff_out_file.append(QString::number(curr_filter));
+        }
+
+        tiff_out_file.append(".tif");
+    }
+
     while(repeat && curr_filter<=max_filter)
     {
+        qDebug() << "curr_filter: " << curr_filter;
         repeat=false;
         setArray();
         sdm->writeToLogFile("initialized image data");
@@ -297,14 +326,10 @@ void Reconstructor::doWork()
         outputTIFF();
         sdm->writeToLogFile("finished TIFF Output");
         if(FilterInput)
-            repeat=true;
-        else
         {
-            if(!xyzFile)
-            {
-                curr_filter++;
-                initData(curr_filter);
-            }
+            repeat=true;
+            curr_filter++;
+            initData(curr_filter);
         }
     }
 
@@ -338,6 +363,7 @@ void Reconstructor::setArray()
 
     std::vector<Coordinates>::iterator it;
 
+    int counter=0;
     for( it = xyz.begin(); it != xyz.end(); ++it )
     {
         Coordinates c = *it;
@@ -345,10 +371,17 @@ void Reconstructor::setArray()
         {
             //qDebug() << c.get(i);
             it->set(i, c.get(i)-image_min[i]);
+            if(it->get(i)>=image_size[i])
+            {
+                counter++;
+                xyz.erase(it);
+                --it;
+            }
             //qDebug() << c.get(i);
         }
 
     }
+    qDebug() << "deleted " << counter << " coordinates";
     qDebug() << "maxPixels: " << maxPixels;
     boost::iostreams::mapped_file file;
     boost::iostreams::mapped_file_params params;
@@ -386,7 +419,12 @@ void Reconstructor::setArray()
            uint64_t lin_index = linearIndex(c);
            //qDebug() << lin_index << "  " << array[lin_index];
            if(lin_index < maxPixels)
-               array[lin_index]+=1;
+           {
+               if(array[lin_index]<65535)
+                   array[lin_index]+=1;
+               else
+                   array[lin_index] = 65535;
+           }
 
            if (it == xyz.begin())
            {
@@ -580,7 +618,7 @@ void Reconstructor::getHeader(QString header)
 
     if(element.tagName().contains("localizations"))
         xyzFile = true;
-
+dimensions=0;
     for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
     {
         QDomElement e = n.toElement();
@@ -618,6 +656,8 @@ void Reconstructor::getHeader(QString header)
         dimensions/=2;
 
     dimDefined=true;
+    if(force2D)
+        dimensions = 2;
     qDebug() << "FilterInput: " << FilterInput;
     qDebug() << "xyzFile: " << xyzFile;
     qDebug() << "dimensions: " << dimensions;
@@ -625,6 +665,12 @@ void Reconstructor::getHeader(QString header)
     qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
     qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
     qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;
+
+    //if(FilterInput)
+    {
+        //dimensions--;
+        setMinMax(min_maxValues);
+    }
 
     minMaxDefined=true;
 
@@ -761,7 +807,7 @@ void Reconstructor::doWorkNow()
                 index++;
                 dbl_vec.push_back(strtod(i.c_str(), NULL));
             }
-            qDebug() << "v.size() " << v.size();
+            //qDebug() << "v.size() " << v.size();
 
 
             sdmixer::Localization loc;
@@ -792,7 +838,10 @@ void Reconstructor::doWorkNow()
 
         qDebug() << " is this a filter_file?: " << FilterInput;
         if(FilterInput)
+        {
             initData(1);
+
+        }
         else
             initData(0);
     }
@@ -857,6 +906,12 @@ Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
 }
 void Reconstructor::initData(int current_filter)
 {
+    if(force2D)
+    {
+        dimensions = 2;
+        image_size[2]=0;
+    }
+
     int limage_min[3]={0};
     int limage_max[3]={0};
     int limage_size[3]={0};

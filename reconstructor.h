@@ -32,7 +32,7 @@ public:
     {
         int x;
         int y;
-        int z;
+        int z=0;
 
         int get(int dim)
         {

@@ -6,24 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>810</width>
-    <height>561</height>
+    <width>809</width>
+    <height>441</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>sdmixer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QTextEdit" name="textConsole">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>380</y>
-      <width>781</width>
-      <height>111</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
@@ -34,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -1107,7 +1097,7 @@
        <item row="5" column="0">
         <widget class="QCheckBox" name="checkBox_HistEq">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Non-Linear Histogram Equalization</string>
@@ -1130,7 +1120,7 @@
        <item row="6" column="0">
         <layout class="QFormLayout" name="formLayout_2">
          <item row="0" column="0">
-          <widget class="QLabel" name="label_18">
+          <widget class="QLabel" name="label_CorrectionCoefficient">
            <property name="text">
             <string>Correction Coefficient:</string>
            </property>
@@ -1139,12 +1129,12 @@
          <item row="0" column="1">
           <widget class="QLineEdit" name="lineEdit_CorrectionCoefficient">
            <property name="enabled">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="label_19">
+          <widget class="QLabel" name="label_Threshold">
            <property name="text">
             <string>Threshold:</string>
            </property>
@@ -1153,14 +1143,14 @@
          <item row="1" column="1">
           <widget class="QLineEdit" name="lineEdit_Threshold">
            <property name="enabled">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item row="2" column="1">
           <widget class="QCheckBox" name="checkBox_sqrtCum">
            <property name="enabled">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
            <property name="text">
             <string>Soft Mode</string>
@@ -1231,10 +1221,13 @@
     </widget>
    </widget>
    <widget class="QProgressBar" name="progressBar">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>600</x>
-      <y>500</y>
+      <y>380</y>
       <width>191</width>
       <height>23</height>
      </rect>
@@ -1242,13 +1235,16 @@
     <property name="value">
      <number>0</number>
     </property>
+    <property name="textVisible">
+     <bool>false</bool>
+    </property>
    </widget>
    <widget class="QLabel" name="label_Status">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>500</y>
-      <width>131</width>
+      <x>20</x>
+      <y>380</y>
+      <width>301</width>
       <height>21</height>
      </rect>
     </property>
@@ -1262,7 +1258,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>810</width>
+     <width>809</width>
      <height>18</height>
     </rect>
    </property>

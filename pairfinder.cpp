@@ -64,8 +64,8 @@ void PairFinder::doWork() {
         }
 
         std::stringstream ss1, ss2;
-        ss1 << "new Offset (nm):\n";
-        ss2 << "new Offset (px):\n";
+        ss1 << "new Offset (nm): ";
+        ss2 << "new Offset (px): ";
 
         for (int i = 0; i < dimensions; ++i)
         {

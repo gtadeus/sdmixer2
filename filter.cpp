@@ -115,7 +115,9 @@ Filter::Filter(sdmixer *s, QString str)
     qDebug() << "inititalizing Filter: " << str;
     this->sdm = s;
     init();
-    loadFile(str);
+    doWorkLaterParameter = str;
+    doWorkLater=true;
+
 
 }
 
@@ -123,6 +125,10 @@ void Filter::doWork()
 {
     qDebug() << "starting Filter in new Thread";
     qDebug()<< "filter dimensions: " <<dimensions;
+
+    if(doWorkLater)
+        loadFile(doWorkLaterParameter);
+
     FilterInputFiles = sdm->getFilterFiles();
     int roundedY = round(maxIntLong*precision);
     qDebug() << roundedY;
@@ -174,19 +180,21 @@ void Filter::doWork()
     int index = 0;
 
     std::vector<int> pairs_in_channel;
-    for ( auto i : FilterInputFiles)
-        pairs_in_channel.push_back(0);
+
 
     int sum_channel_0=0;
 
+
     for ( ff = FilterInputFiles.begin(); ff < FilterInputFiles.end(); ++ff)
     {
-        int sum = 0;
 
         QString i = *ff;
 
         QImage img(i);
         qDebug() << i;
+
+        int sum = 0;
+
 
 
         std::vector<sdmixer::Localization>::iterator it;
@@ -242,13 +250,14 @@ void Filter::doWork()
             if(it->filter == 0)
                 sum_channel_0++;
             else
-                pairs_in_channel[current_filter]+=1;
+                sum++;
 
 
             //qDebug() << shortVal << "  " << longVal << "  " << clrPixel.black() << "  " << it->filter;
 
             ++index;
         }
+        pairs_in_channel.push_back(sum);
         ++current_filter;
     }
     std::vector<sdmixer::Localization>::iterator it;

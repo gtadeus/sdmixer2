@@ -33,6 +33,8 @@ public:
     void init();
     void loadFile(QString str);
 
+    void doWorkNow();
+
 signals:
     void finished();
 
@@ -44,6 +46,8 @@ private:
     sdmixer *sdm;
     int maxIntLong;
     int maxIntShort;
+
+    QString doWorkLaterParameter;
 
     QString fileName, output_dir, outputFile, intensitySpaceFile;
     QString FilterSuffix = "_filter_out.txt";
@@ -69,6 +73,8 @@ private:
     QString output_directory;
 
     sdmixer::min_max min_maxValues;
+
+    bool doWorkLater=false;
 
 };
 

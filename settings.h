@@ -85,6 +85,7 @@ public:
     bool getNonLinearHistEq() { return nonLinearHistogramEqual;}
     double getCorrectionCoefficient() {return histeqCoefficient;}
     double getThreshold() { return Threshold;}
+    bool getSqrtCummulation(){ return sqrtCummulation;}
     bool getLZWCompression() { return LZWCompression;}
     bool getResliceZ(){return ResliceZ;}
     int getStartSliceZ(){return startRescliceZ;}

@@ -280,7 +280,7 @@ public:
 
     int getCurrentDimensions(QString file);
 
-    void writeToLogFile(QString msg);
+    void writeToLogFile(QString msg, QString msg2="");
 
 
 protected:
@@ -323,6 +323,8 @@ private slots:
     void loadKernel(int a);
     void SameKernelCheckBoxChanged(int state);
     void KernelChannelHighlighted(QString str);
+
+    void HistEqCheckBoxClicked(int state);
 
 
     void on_pushButton_saveChannel_clicked();

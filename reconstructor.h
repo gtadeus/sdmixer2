@@ -24,11 +24,10 @@ class Reconstructor : public QObject
     Q_OBJECT
 public:
 
-    void Convolution();
     void Convolution2();
     void CreateGaussianKernel();
     void setKernel();
-    int pow2roundup (int x);
+
     struct Coordinates
     {
         int x;
@@ -68,13 +67,18 @@ public:
         bool make3D=true;
     };
 
+    struct ConvPixel{
+        double sum;
+        int index;
+    };
+
     Reconstructor(sdmixer *s,
                   std::vector<sdmixer::Localization> *data,
                   int current_filter);
     Reconstructor(sdmixer *s, QString xyz_file);
     void run();
     void createKernel();
-    void init(bool getKernelVector, int current_filter=0);
+    bool file_exists(char *filename);
 
     void hist_correct();
     void getIndexFromXYZ();
@@ -96,6 +100,10 @@ public:
 
     void getHeader(QString header);
     void initData(int current_filter);
+    void getSettingsFromGUI();
+    void doWorkNow();
+
+    void hist_eq();
 
 signals:
     void finished();
@@ -108,6 +116,8 @@ private:
 
     sdmixer *sdm;
     Kernel krn;
+
+    QString xyz_file_parameter;
 
     bool FilterInput=false;
 
@@ -131,8 +141,10 @@ private:
 
     TIFF *out;
 
-    int hist_correct_value;
-    int hist_threshold;
+    double hist_correct_value;
+    double hist_threshold;
+    bool perform_hist_eq;
+    bool sqrtCum;
 
     int xCol=0;
     int yCol=1;
@@ -172,6 +184,10 @@ private:
     bool minMaxDefined=false;
     bool dimDefined=false;
     int max_filter=1;
+
+    bool xyzFile = false;
+
+    bool doWorkLater=false;
 
 
 

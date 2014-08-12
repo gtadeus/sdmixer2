@@ -16,12 +16,7 @@
 
 #include <QThread>
 
-
-
 #include <unistd.h>
-
-
-
 
 
 sdmixer::sdmixer(QWidget *parent) :
@@ -81,7 +76,13 @@ sdmixer::sdmixer(QWidget *parent) :
         qDebug() << "no default settings available";
     }
 
+
 }
+void sdmixer::writeToLogFile(QString msg)
+{
+    logFile << timestamp().toStdString() << " : " << msg.toStdString() <<std::endl;
+}
+
 void sdmixer::KernelChannelHighlighted(QString str)
 {
     qDebug() << "KernelChannelHighlighted " << str;
@@ -252,11 +253,13 @@ void sdmixer::getColsAndRows(QString file)
     const char *fname = file.toStdString().c_str();
 
     static const int BUFFER_SIZE = 16*1024;
-    int fd = open(fname, O_RDONLY);
-    if(fd == -1)
+    //int fd = open(fname, O_RDONLY);
+    FILE *in = fopen(fname, "r");
+    if(in == NULL)
         return;
     char buf[BUFFER_SIZE + 1];
-    while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
+    //while(size_t bytes_read = read(fd, buf, BUFFER_SIZE))
+    while(size_t bytes_read = fread(&buf, sizeof(char), BUFFER_SIZE, in))
     {
         if(bytes_read == (size_t)-1)
             return;//handle_error("read failed");
@@ -267,6 +270,7 @@ void sdmixer::getColsAndRows(QString file)
     }
 
     // Lines counted
+    fclose(in);
 
 }
 
@@ -281,6 +285,20 @@ QString sdmixer::timestamp()
     {
         out << c_string;
     }
+    return retval;
+}
+QString sdmixer::timestampLogFile()
+{
+    QString retval;
+    QTextStream out(&retval);
+
+    std::time_t t = std::time(NULL);
+    char c_string[100];
+    if (std::strftime(c_string, sizeof(c_string), "%Y%m%d%X", std::localtime(&t)))
+    {
+        out << c_string;
+    }
+    retval.replace(":", "");
     return retval;
 }
 QString sdmixer::error_msg(QString msg)
@@ -541,24 +559,320 @@ void sdmixer::on_addFileButton_clicked(){
     }
 }
 
-void sdmixer::threadReady()
+/*void sdmixer::threadReady()
 {
     qDebug() << "thread Ready";
-    nextStage();
+    qDebug() << "current_dimensions " << current_dimensions;
+    qDebug() << "current_file " << current_file;
+    qDebug() << "current_filter " << current_filter;
+    qDebug() << "current_stage " << current_stage;
+    qDebug() << "filter_max " << filter_max;
+    qDebug() << "InputFiles.size() " << InputFiles.size();
+    qDebug() << runFilter;
+    qDebug() << runReconstructor;
+
+    bool quit=false;
+
+    //if(current_stage == )
+    if(current_stage == 1 && !runFilter &&
+            !runReconstructor && current_file < InputFiles.size())
+    {
+        qDebug() << "hier0";
+        current_stage=0;
+        //quit=true;
+
+    }
+    if(current_stage == 1 && !runFilter &&
+            !runReconstructor && current_file >= InputFiles.size())
+    {
+        qDebug() << "hier1";
+        quit=true;
+
+    }
+    else if(current_stage == 3  && !runReconstructor &&
+            current_filter > filter_max)
+    {
+        qDebug() << "hier2";
+        quit = true;
+    }
+    else if(current_stage == 3 &&
+            current_filter <= filter_max &&
+            filter_max != 0)
+    {
+        qDebug() << "current_stage == 3 && current_filter <= filter_max";
+        current_stage = 2;
+    }
+    if(current_stage == 1 && !runFilter && runReconstructor)
+    {
+        current_stage++;
+        qDebug()<<"current_stage == 1 && !runFilter && runReconstructor";
+        //current_stage++;
+    }
+
+
+    if(quit)
+    {
+        current_stage = 0;
+        current_file = 0;
+        current_filter = 0;
+        setStartDemixingButtonEnabled(true);
+        return;
+    }
+    else
+    {
+        qDebug() <<"nextStage";
+        nextStage();
+    }
+}*/
+void sdmixer::runStage(int stage)
+{
+    if (stage == 1)
+    {//runPairFinder
+        writeToLogFile("starting PairFinder");
+        QString msg = "loading ";
+        msg.append(InputFiles[current_file]);
+        writeToLogFile(msg);
+
+        QThread *pairfinder_thread = new QThread;
+        PairFinder *pf;
+        pf_output->clear();
+        pf = new PairFinder(this, InputFiles[current_file]);
+        /*current_dimensions = pf->getDimensions();
+        if( force2D )
+            current_dimensions = 2;*/
+        //PairFinder p(this, InputFiles[current_file]);
+
+        pf->moveToThread(pairfinder_thread);
+        connect(pairfinder_thread, SIGNAL(started()), pf, SLOT(doWork()));
+        connect(pf, SIGNAL(finished()), pairfinder_thread, SLOT(quit()));
+        connect(pf, SIGNAL(finished()), pf, SLOT(deleteLater()));
+        connect(pairfinder_thread, SIGNAL(finished()), pairfinder_thread, SLOT(deleteLater()));
+        connect(pf, SIGNAL(finished()), this, SLOT(threadReady()));
+        pairfinder_thread->start();
+
+    }
+    if (stage == 2)
+    {//run FIlter
+        writeToLogFile("starting Filter");
+
+        qDebug()<<"runFIlter";
+        //current_dimensions = 3;
+        QThread *filter_thread = new QThread;
+        Filter *f;
+        if( runPairFinder )
+        {
+            f = new Filter(this, pf_output);
+        }
+        else
+            f = new Filter(this, InputFiles[current_file]);
+
+        f->moveToThread(filter_thread);
+        connect(filter_thread, SIGNAL(started()), f, SLOT(doWork()));
+        connect(f, SIGNAL(finished()), filter_thread, SLOT(quit()));
+        connect(f, SIGNAL(finished()), f, SLOT(deleteLater()));
+        connect(filter_thread, SIGNAL(finished()), filter_thread, SLOT(deleteLater()));
+        connect(f, SIGNAL(finished()),this, SLOT(threadReady()));
+        filter_thread->start();
+
+    }
+    if (stage ==3)
+    {//runReconstructor
+        writeToLogFile("starting Reconstructor");
+        qDebug()<<"runReconstructor";
+        //qDebug() << "Current filter: " << current_filter;
+        QThread *reconstructor_thread = new QThread;
+        Reconstructor *r;
+
+        if(runPairFinder && !runFilter) // Take all
+        {
+            QString msg = "reconstructing from all channels";
+            writeToLogFile(msg);
+            r = new Reconstructor(this, pf_output, 0);
+        }
+        if(runFilter)
+        {
+            //current_filter++;
+            if(current_filter <= filter_max )
+            {
+                /*qDebug() << "filter_max: " << filter_max;
+                qDebug()<<"curr_filter<=filterMax";
+                qDebug() << "pf_output->size();" << pf_output->size();
+                qDebug() << "current_filter" << current_filter;*/
+                QString msg = "reconstructing channel ";
+                msg.append(QString::number(current_filter));
+                writeToLogFile(msg);
+                r = new Reconstructor(this, pf_output, current_filter);
+
+            }
+            ++current_filter;
+            //qDebug()<<"Current_filter " << current_filter;
+        }
+        if(!runPairFinder && !runFilter) // process xyz to simple images or Filter
+        {
+            r = new Reconstructor(this, InputFiles[current_file]);
+        }
+
+
+            //qDebug() << "mve to thread";
+        r->moveToThread(reconstructor_thread);
+        connect(reconstructor_thread, SIGNAL(started()), r, SLOT(doWork()));
+        connect(r, SIGNAL(finished()), reconstructor_thread, SLOT(quit()));
+        connect(r, SIGNAL(finished()), r, SLOT(deleteLater()));
+        connect(reconstructor_thread, SIGNAL(finished()), reconstructor_thread, SLOT(deleteLater()));
+        connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
+        reconstructor_thread->start();
+
+
+    }
 }
 
-void sdmixer::nextStage()
+void sdmixer::threadReady()
 {
+    qDebug() << "thread ready!";
+    bool quit = false;
+    if(current_stage == 0)
+    {
+        current_stage++;
+        if(runPairFinder)
+        {
+            runStage(current_stage);
+            //return;
+        }
+        else
+        {
+            threadReady();
+            return;
+        }
+    }
+    else if(current_stage == 1)
+    {
+        current_stage++;
+        if(runFilter)
+        {
+            runStage(current_stage);
+            //return;
+        }
+        else
+        {
+            threadReady();
+            return;
+        }
 
+    }
+    else if(current_stage == 2)
+    {
+        if(runReconstructor)
+        {
+            current_dimensions = getCurrentDimensions(InputFiles[current_file]);
+            if( force2D )
+                current_dimensions = 2;
+            qDebug() << "current_dimensions " << current_dimensions;
+            if(current_filter < filter_max)
+            {
+                //PairFinder pf(this, InputFiles[current_file]);
+
+                qDebug() << "starting runStage(3)";
+                runStage(3);
+                qDebug() << "before return";
+                return;
+
+            }
+            else
+            {
+                current_stage++;
+                runStage(current_stage);
+            }
+            //return;
+        }
+        else
+        {
+            current_stage++;
+            threadReady();
+            return;
+        }
+    }
+    else if(current_stage == 3)
+    {
+        qDebug() << "current_file: " << current_file << " inpoutfile.size() "<< InputFiles.size();
+        if(current_file < InputFiles.size()-1)
+        {
+            current_file++;
+            current_stage = 0;
+            current_filter = 1;
+            threadReady();
+            return;
+        }
+        else
+        {
+            quit = true;
+        }
+    }
+
+    if (quit)
+    {
+        current_stage = 0;
+        current_file = 0;
+        current_filter = 1;
+        setStartDemixingButtonEnabled(true);
+        qDebug() << "finished";
+    }
+}
+int sdmixer::getCurrentDimensions(QString file)
+{
+    int dim=0;
+    QFile f(file);
+    f.open(QIODevice::ReadOnly| QIODevice::Text);
+
+    QTextStream in(&f);
+    QString line = in.readLine();
+
+    line = line.replace("#", "");
+
+    QDomDocument qd;
+
+    qd.setContent(line);
+    qDebug() << line;
+
+    QDomElement element = qd.documentElement();
+
+    for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
+    {
+        QDomElement e = n.toElement();
+        if( e.tagName() == "field" )
+        {
+            if( e.attribute("identifier").contains("Position"))
+                ++dim;
+        }
+
+    }
+    if(dim > 3)
+        dim/=2;
+
+    f.close();
+
+    qDebug() << "dimensions: " << dim;
+
+    return dim;
+}
+
+/*void sdmixer::nextStage()
+{
+    bool quit = false;
     ++current_stage;
     qDebug() << "current_stage:" << current_stage;
     if(current_stage == 1)
     {
+        qDebug() << "current_stage " << current_stage;
         if ( runPairFinder )
         {
+            qDebug() << "runPairFinder";
             QThread *pairfinder_thread = new QThread;
             PairFinder *pf;
+            pf_output->clear();
             pf = new PairFinder(this, InputFiles[current_file]);
+            current_dimensions = pf->getDimensions();
+            if( force2D )
+                current_dimensions = 2;
             //PairFinder p(this, InputFiles[current_file]);
 
             pf->moveToThread(pairfinder_thread);
@@ -569,17 +883,26 @@ void sdmixer::nextStage()
             connect(pf, SIGNAL(finished()), this, SLOT(threadReady()));
             pairfinder_thread->start();
         }
+        if(!runFilter && !runReconstructor)
+        {
+            current_file++;
+        }
         return;
 
     }
     if(current_stage == 2)
     {
+        qDebug() << "current_stage " << current_stage;
         if ( runFilter )
         {
+            qDebug()<<"runFIlter";
+            //current_dimensions = 3;
             QThread *filter_thread = new QThread;
             Filter *f;
             if( runPairFinder )
+            {
                 f = new Filter(this, pf_output);
+            }
             else
                 f = new Filter(this, InputFiles[current_file]);
 
@@ -591,12 +914,20 @@ void sdmixer::nextStage()
             connect(f, SIGNAL(finished()),this, SLOT(threadReady()));
             filter_thread->start();
         }
+        else
+        {
+            //nextStage();
+        }
+
         return;
     }
     if (current_stage == 3)
     {
+        qDebug() << "current_stage " << current_stage;
         if( runReconstructor )
         {
+            qDebug()<<"runReconstructor";
+            qDebug() << "Current filter: " << current_filter;
             QThread *reconstructor_thread = new QThread;
             Reconstructor *r;
 
@@ -604,11 +935,12 @@ void sdmixer::nextStage()
                 r = new Reconstructor(this, pf_output, 0);
             if(runFilter)
             {
-                if(current_filter <= filter_max)
+                if(current_filter <= filter_max )
                 {
+                    qDebug()<<"curr_filter<=filterMax";
                     r = new Reconstructor(this, pf_output, current_filter);
-                    ++current_filter;
                 }
+                ++current_filter;
             }
             if(!runPairFinder && !runFilter) // process xyz to simple images
                 r = new Reconstructor(this, InputFiles[current_file]);
@@ -621,35 +953,48 @@ void sdmixer::nextStage()
             connect(r, SIGNAL(finished()),this, SLOT(threadReady()));
             reconstructor_thread->start();
         }
-        return;
+        //else
+        {//quit
+            //quit=true;
+            //nextStage();
+            return;
+        }
 
     }
     if (current_stage >= 4)
     {
-        current_stage=0;
+        qDebug() << "current_stage " << current_stage;
+        //current_stage=0;
 
         current_file++;
         if( current_file >= InputFiles.size() )
         {
-            qDebug() << current_file;
+            qDebug() << "current_file: " <<current_file;
             current_stage=0;
             current_file = 0;
             current_filter = 0;
             sdmixer::log(this, "demixing finished!");
             setStartDemixingButtonEnabled(true);
-            setCancelRunButtonEnabled(false);
+            //setCancelRunButtonEnabled(false);
         }
         else
         {
             current_stage = 0;
-            qDebug() << "next stage";
+            qDebug() << "next file";
             nextStage();
         }
 
         return;
-
     }
-}
+    if ( quit )
+    {
+        current_stage=0;
+        current_file = 0;
+        current_filter = 0;
+
+        setStartDemixingButtonEnabled(true);
+    }
+}*/
 
 
 void sdmixer::on_startDemixing_clicked()
@@ -666,12 +1011,25 @@ void sdmixer::on_startDemixing_clicked()
     {
         filter_max = FilterFiles.size();
         qDebug() << "filter max: " << filter_max;
+        //current_filter = 1;
     }
-    output_directory = ui->lineEdit_outputDirectory->text();
-    ui->pushButton_CancelRun->setVisible(true);
-    setStartDemixingButtonEnabled(false);
+    /*if(!runPairFinder)
+        current_stage=1;*/
+    current_stage=0;
 
-    nextStage();
+    output_directory = ui->lineEdit_outputDirectory->text();
+    //ui->pushButton_CancelRun->setVisible(true);
+    setStartDemixingButtonEnabled(false);
+    QString logfile = output_directory;
+    if(!output_directory.isEmpty())
+        logfile.append("/");
+    logfile.append(timestampLogFile());
+    logfile.append("_sdmixer_log.txt");
+    qDebug() << logfile;
+    logFile.open(logfile.toLocal8Bit(), std::ios::app);
+    writeToLogFile("demixing started");
+
+    threadReady();
 }
 
 void sdmixer::on_actionAbout_sdmixer_triggered()

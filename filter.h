@@ -7,8 +7,14 @@
 #include <vector>
 #include <fstream>
 #include "sdmixer.h"
-//#include "pairfinder.h"
+#include "pairfinder.h"
 #include <QThread>
+
+#include <QtXml/QtXml>
+#include <QtXml/QDomDocument>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 //class sdmixer;
 
@@ -18,17 +24,14 @@ class Filter : public QObject
 public:
     Filter(sdmixer *s, QString file);
     Filter(sdmixer *s, std::vector<sdmixer::Localization> *data);
-    void run();
-    QImage loadFilterImage(QString path);
-    void initializeIntensities();
-    void roundIntensityValues();
-    void drawIntensitySpace();
-
-
 
     int getMaxIntLong() { return maxIntLong; }
     void setMaxIntLong(int val) { this->maxIntLong=val; }
     void setMaxIntShort(int val) { this->maxIntShort=val; }
+
+
+    void init();
+    void loadFile(QString str);
 
 signals:
     void finished();
@@ -42,10 +45,18 @@ private:
     int maxIntLong;
     int maxIntShort;
 
+    QString fileName, output_dir, outputFile, intensitySpaceFile;
+    QString FilterSuffix = "_filter_out.txt";
+    QString IntensitySpaceSuffix = "_IntensitySpace.png";
+    int dimensions=0;
+    int rawDataCols=0;
+
     double maxIntLongFromFile;
     double maxIntShortFromFile;
 
     std::vector<sdmixer::Localization> *input;
+
+    //std::vector<double> pairs_out_input;
 
     double precision = 0.1;
     int nr_of_filters = 1;
@@ -56,6 +67,8 @@ private:
     std::vector<QImage> QImgFilters;
     std::vector<QString> FilterInputFiles;
     QString output_directory;
+
+    sdmixer::min_max min_maxValues;
 
 };
 

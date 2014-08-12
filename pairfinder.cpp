@@ -16,7 +16,8 @@ void PairFinder::doWork() {
 
     if(fishing_settings.run)
     {
-        qDebug() << "hier";
+        sdm->writeToLogFile("searching optimal offset");
+        qDebug() << "starting fishing";
         /*if(fishing_settings.range > min_maxValues.max_x)
         {
             fishing_settings.range = min_maxValues.max_x/10;
@@ -62,23 +63,131 @@ void PairFinder::doWork() {
             ++index;
         }
 
+        std::stringstream ss1, ss2;
+        ss1 << "new Offset (nm):\n";
+        ss2 << "new Offset (px):\n";
+
         for (int i = 0; i < dimensions; ++i)
         {
             //new Offset:
-            Offset[i] = max_pairs.getOffset(i);
+            Offset[i] = max_pairs.getOffset(i);    
             qDebug() << "new Offset : " << Offset[i];
+            ss1 << Offset[i] << " ";
+            ss2 << Offset[i]/NM_PER_PX << " ";
         }
+        sdm->writeToLogFile(QString::fromStdString(ss1.str()));
+        sdm->writeToLogFile(QString::fromStdString(ss2.str()));
     }
 
     FindPairs(false);
 
     qDebug() << "found " << numpairs << " pairs";
 
+    std::ostringstream os; os << "found " << numpairs << " pairs." ;
+    sdm->writeToLogFile(QString::fromStdString(os.str()));
+
     sdm->setPF_min_maxValues(min_maxValues);
+
+    //saveFile();
 
     emit finished();
 
 }
+void PairFinder::writeHeader(QTextStream &out, bool AppendFilter)
+{
+    QDomDocument pf_header;
+
+    QDomElement paired_localizations = pf_header.createElement("PairedLocalizations");
+    paired_localizations.setAttribute("name", "sdmixer");
+    paired_localizations.setAttribute("version", QString::number(SDMIXER_VERSION) );
+    pf_header.appendChild(paired_localizations);
+
+
+    QString current_dim;
+
+    for(int i = 0; i < dimensions; ++i)
+    {
+        QDomElement shortLoc = pf_header.createElement("field");
+        current_dim = QString::number(i);
+        QString shortPosition = "Short Position-";
+        shortPosition.append(current_dim);
+        shortLoc.setAttribute("identifier", shortPosition);
+        QString min = QString::number(min_maxValues.getMin(i));
+        min.append("m");
+        QString max = QString::number(min_maxValues.getMax(i));
+        max.append("m");
+        shortLoc.setAttribute("min", min);
+        shortLoc.setAttribute("max", max);
+        paired_localizations.appendChild(shortLoc);
+    }
+
+    QDomElement ShortIntensity = pf_header.createElement("field");
+    ShortIntensity.setAttribute("identifier", "Short Amplitude");
+    paired_localizations.appendChild(ShortIntensity);
+
+    QDomElement frame = pf_header.createElement("field");
+    frame.setAttribute("identifier", "ImageNumber");
+    paired_localizations.appendChild(frame);
+
+    for(int i = 0; i < dimensions; ++i)
+    {
+        QDomElement longLoc = pf_header.createElement("field");
+        current_dim = QString::number(i);
+        QString longPosition = "Long Position-";
+        longPosition.append(current_dim);
+        longLoc.setAttribute("identifier", longPosition);
+        QString min = QString::number(min_maxValues.getMin(i));
+        min.append("m");
+        QString max = QString::number(min_maxValues.getMax(i));
+        max.append("m");
+        longLoc.setAttribute("min", min);
+        longLoc.setAttribute("max", max);
+        paired_localizations.appendChild(longLoc);
+    }
+
+    QDomElement LongIntensity = pf_header.createElement("field");
+    LongIntensity.setAttribute("identifier", "Long Amplitude");
+    paired_localizations.appendChild(LongIntensity);
+
+    if(AppendFilter)
+    {
+        QDomElement Filter = pf_header.createElement("field");
+        Filter.setAttribute("identifier", "Filter");
+        paired_localizations.appendChild(Filter);
+    }
+
+
+    QString header = pf_header.toString();
+    header.replace("\n", "");
+    header.insert(0, "#");
+
+    out << header << "\n";
+}
+
+void PairFinder::saveFile()
+{
+    QFile pairs_out(outputFile);
+    pairs_out.open(QIODevice::WriteOnly | QIODevice::Text);
+    QTextStream out(&pairs_out);
+    sdmixer::Localization loc;
+
+    for( int i = 0; i < numpairs; ++i)
+    {
+        for(int j = 0; j < dimensions; ++j)
+        {
+            out << loc.getShortDim(i) << " ";
+        }
+        out << loc.ShortIntensity << " ";
+        out << loc.frame << " ";
+        for(int j = 0; j < dimensions; ++j)
+        {
+            out << loc.getLongDim(i) << " ";
+        }
+        out << loc.LongIntensity << "\n";
+    }
+
+}
+
 void PairFinder::Tokenize(const std::string& str,
                       std::vector<std::string>& tokens,
                       const std::string delimiters)
@@ -193,12 +302,14 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     outputFile.append("/");
     outputFile.append(fileName);
     outputFile.append(PairFinderSuffix);
-    //qDebug() << output_dir;
+    qDebug() << output_dir;
 
 }
-void PairFinder::getHeader()
+void PairFinder::getHeader(QString header_file)
 {
-    std::ifstream ifs(file.toLatin1());
+    if(header_file.isEmpty())
+        header_file = file;
+    std::ifstream ifs(header_file.toLatin1());
     std::string firstLine;
     getline (ifs, firstLine);
 
@@ -209,7 +320,9 @@ void PairFinder::getHeader()
     QDomDocument qd;
 
     qd.setContent(header);
+
     QDomElement element = qd.documentElement();
+
     for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
     {
         QDomElement e = n.toElement();
@@ -238,15 +351,29 @@ void PairFinder::getHeader()
             }
         }
     }
-    /*qDebug() << "max Values from config";
+    if(dimensions > 3)
+        dimensions/=2;
+    qDebug() << "dimensions: " << dimensions;
+    qDebug() << "rawDataCols: " << rawDataCols;
+    qDebug() << "max Values from config";
     qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
     qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
-    qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;*/
+    qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;
 }
 
 void PairFinder::FindPairs(bool fishing, int last_frame)
 {
-    //qDebug()<<"searching for pairs...";
+
+
+    QFile pairs_out(outputFile);
+    QTextStream out(&pairs_out);
+
+    if(!fishing)
+    {
+        qDebug()<<"searching for pairs...";
+        pairs_out.open(QIODevice::WriteOnly | QIODevice::Text);
+        writeHeader(out);
+    }
     numpairs=0;
     int curr_row=0;
     int increment = 1;
@@ -321,7 +448,21 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 loc.LongIntensity=input[(curr_row+(!factorShort)*increment)*rawDataCols+IntensityColumn];
 
                 if(!fishing)
+                {
                     sdm->pushBackLocalization(loc);
+
+                    for(int ii = 0; ii < dimensions; ++ii)
+                    {
+                        out << loc.getShortDim(ii) << " ";
+                    }
+                    out << loc.ShortIntensity << " ";
+                    out << loc.frame << " ";
+                    for(int jj = 0; jj < dimensions; ++jj)
+                    {
+                        out << loc.getLongDim(jj) << " ";
+                    }
+                    out << loc.LongIntensity << "\n";
+                }
                 else
                 {
                     fishing_run current_run;
@@ -356,8 +497,12 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
         std::sort ( grouped_rows.begin(), grouped_rows.end() );
         multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
     }
+    if(!fishing)
+        pairs_out.close();
 
-    //std::ostringstream os; os << "found " << numpairs << " pairs." ;
+
+
+
     //sdmixer::log(sdm, os.str());
     //qDebug() << "found " << numpairs << " pairs." ;
 }

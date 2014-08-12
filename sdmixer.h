@@ -2,6 +2,7 @@
 #define SDMIXER_H
 
 #define DEFAULT_SETTINGS "default_settings.txt"
+#define SDMIXER_VERSION  2.01
 
 #include <QMainWindow>
 #include <QListWidget>
@@ -111,6 +112,27 @@ public:
         double min_y=0, max_y=0;
         double min_z=0, max_z=0;
 
+        double getMin(int dim)
+        {
+            if ( dim == 0)
+                return min_x;
+            if ( dim == 1)
+                return min_y;
+            if ( dim == 2)
+                return min_z;
+            return 0;
+        }
+        double getMax(int dim)
+        {
+            if ( dim == 0)
+                return max_x;
+            if ( dim == 1)
+                return max_y;
+            if ( dim == 2)
+                return max_z;
+            return 0;
+        }
+
     };
 
     enum camera_orientation_t{
@@ -171,6 +193,7 @@ public:
 
     // logging:
     QString timestamp();
+    QString timestampLogFile();
     QString error_msg(QString msg);
     void writeToConsole(QString q);
 
@@ -231,6 +254,8 @@ public:
     int getStartRescliceZ(){ return startRescliceZ; }
     int getEndRescliceZ() { return endRescliceZ;}
 
+    std::vector<Localization> * getPfOutput(){ return pf_output; }
+
 
     // save Pairfinder Data
     void pushBackLocalization(Localization l)
@@ -248,8 +273,14 @@ public:
     std::map<short_channel_position_t, QString> short_pos;
     std::map<filter_orientation_t, QString> filter_orient;
 
+    int getCurrentDimensions() { return current_dimensions; }
 
+    void runStage(int stage);
+    void nextStage2();
 
+    int getCurrentDimensions(QString file);
+
+    void writeToLogFile(QString msg);
 
 
 protected:
@@ -296,10 +327,13 @@ private slots:
 
     void on_pushButton_saveChannel_clicked();
 
+
+
 private:
     std::vector<gaussian_kernel> vec_kernel;
     std::vector<Localization> *pf_output;
 
+    int current_dimensions=0;
     static const int max_dims = 3;
     // Settings
     // Session & Pairfinder
@@ -353,11 +387,11 @@ private:
 
     int rawDataCols, rawDataRows;
     int current_stage=0;
-    int current_filter=0;
-    int filter_max;
+    int current_filter=1;
+    int filter_max=0;
     std::vector<QString>::size_type current_file = 0;
 
-
+    std::ofstream logFile;
 
 
 };

@@ -14,6 +14,9 @@
 #include <QFileInfo>
 #include <QString>
 
+#include <QtXml/QtXml>
+#include <QtXml/QDomDocument>
+
 
 
 class Reconstructor : public QObject
@@ -22,6 +25,7 @@ class Reconstructor : public QObject
 public:
 
     void Convolution();
+    void Convolution2();
     void CreateGaussianKernel();
     void setKernel();
     int pow2roundup (int x);
@@ -90,6 +94,9 @@ public:
     void getMinMax();
     void setArray();
 
+    void getHeader(QString header);
+    void initData(int current_filter);
+
 signals:
     void finished();
     //void started();
@@ -102,10 +109,16 @@ private:
     sdmixer *sdm;
     Kernel krn;
 
+    bool FilterInput=false;
+
     sdmixer::gaussian_kernel globalKernel;
     std::vector<sdmixer::gaussian_kernel> vecKernel;
     std::vector<Coordinates> xyz;
     std::vector<sdmixer::Localization> *input_data;
+
+    sdmixer::min_max min_maxValues;
+
+    int rawDataCols=0;
 
     bool runConvolution;
     bool oneConvolutionKernel;
@@ -125,7 +138,7 @@ private:
     int yCol=1;
     int zCol=2;
 
-    int dimensions=3;
+    int dimensions=0;
 
     int binning[3]={0};
 
@@ -143,6 +156,7 @@ private:
     //char *tiff_uint8_file ="tiff_uint8.tmp";
     char *fft_src_file = "fft_src.tmp";
     char *fft_krnl_file = "fft_kernel.tmp";
+    char *convolved_image = "conv_img.tmp";
 
 
     int dbl_image_min=0;
@@ -153,6 +167,11 @@ private:
     QString input_base_name;
     QString input_file;
     QString output_dir;
+
+    int curr_filter=1;
+    bool minMaxDefined=false;
+    bool dimDefined=false;
+    int max_filter=1;
 
 
 

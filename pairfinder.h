@@ -25,7 +25,7 @@ class PairFinder : public QObject
 public:
 
     PairFinder(sdmixer *s, QString f);
-    void getHeader();
+    void getHeader(QString header_file="");
     void Tokenize(const std::string& str, std::vector<std::string>& tokens, const std::string delimiters);
     QString removeCharacters(QString input, char chars[])
     {
@@ -48,6 +48,7 @@ public:
 
     void loadInputFile();
     void saveFile();
+    void writeHeader(QTextStream &out, bool AppendHeader=false);
 
 
 signals:
@@ -95,7 +96,8 @@ private:
 
     sdmixer *sdm;
     QString file, fileName, outputFile;
-    QString PairFinderSuffix = "_pf.out";
+    QString PairFinderSuffix = "_pairs_out.txt";
+    QString output_dir;
 
     std::vector<double> input;
     int row_stop = 0;
@@ -116,7 +118,7 @@ private:
     sdmixer::min_max min_maxValues;
     sdmixer::fishing fishing_settings;
     sdmixer::offset_units offset_units;
-    QString output_dir;
+
 
     bool LeftRight = false;
     int ShortChannel = 1;
@@ -132,6 +134,8 @@ private:
     int multiple_counter = 0;
     int rawDataCols = 0;
     int rawDataRows = 0;
+
+
 
 
 

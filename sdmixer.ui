@@ -93,7 +93,7 @@
        <item>
         <widget class="QCheckBox" name="checkBox_runPairFinder">
          <property name="text">
-          <string>Run Pair Finder</string>
+          <string>Pair Localizations</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -103,7 +103,7 @@
        <item>
         <widget class="QCheckBox" name="checkBox_runFilter">
          <property name="text">
-          <string>Run Filter</string>
+          <string>Filter Colors</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -113,7 +113,7 @@
        <item>
         <widget class="QCheckBox" name="checkBox_runReconstructor">
          <property name="text">
-          <string>Run Reconstructor</string>
+          <string>Reconstruct Image</string>
          </property>
          <property name="checked">
           <bool>true</bool>
@@ -751,7 +751,7 @@
     </widget>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
-      <string>Filter</string>
+      <string>Multi Color Filter</string>
      </attribute>
      <widget class="QListWidget" name="listWidget_FilterFiles">
       <property name="geometry">
@@ -884,7 +884,7 @@
     </widget>
     <widget class="QWidget" name="tab_4">
      <attribute name="title">
-      <string>Reconstructor</string>
+      <string>Reconstruct Image</string>
      </attribute>
      <widget class="QGroupBox" name="groupBox_4">
       <property name="geometry">
@@ -908,6 +908,9 @@
        </item>
        <item row="1" column="0">
         <widget class="QCheckBox" name="checkBox_scliceZ">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Reslice in z Direction</string>
          </property>
@@ -921,7 +924,11 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_startSliceZ"/>
+        <widget class="QLineEdit" name="lineEdit_startSliceZ">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_23">
@@ -931,7 +938,11 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QLineEdit" name="lineEdit_endSliceZ"/>
+        <widget class="QLineEdit" name="lineEdit_endSliceZ">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -1020,7 +1031,7 @@
         <string>Save</string>
        </property>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1095,6 +1106,9 @@
        </item>
        <item row="5" column="0">
         <widget class="QCheckBox" name="checkBox_HistEq">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Non-Linear Histogram Equalization</string>
          </property>
@@ -1123,7 +1137,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="lineEdit_CorrectionCoefficient"/>
+          <widget class="QLineEdit" name="lineEdit_CorrectionCoefficient">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="label_19">
@@ -1133,7 +1151,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QLineEdit" name="lineEdit_Threshold"/>
+          <widget class="QLineEdit" name="lineEdit_Threshold">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
          </item>
          <item row="2" column="1">
           <widget class="QCheckBox" name="checkBox_sqrtCum">
@@ -1155,6 +1177,9 @@
       <string>Expert Settings</string>
      </attribute>
      <widget class="QTextEdit" name="textEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -1177,7 +1202,7 @@
        <string>Alternative File Header (XML):</string>
       </property>
      </widget>
-     <widget class="QWidget" name="">
+     <widget class="QWidget" name="layoutWidget">
       <property name="geometry">
        <rect>
         <x>301</x>
@@ -1195,7 +1220,11 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLineEdit" name="lineEdit_exponentialPrefix"/>
+        <widget class="QLineEdit" name="lineEdit_exponentialPrefix">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

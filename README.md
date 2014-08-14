@@ -1,4 +1,4 @@
-Prebuild binaries, with Windows Installer can be downloaded at SourceForge
+Prebuilt binaries, with Windows Installer can be downloaded at SourceForge
 
 https://sourceforge.net/projects/sdmixer/
 

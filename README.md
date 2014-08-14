@@ -1,7 +1,7 @@
-Prebuilt binaries, with Windows Installer can be downloaded at SourceForge
+Prebuilt binaries, with Windows Installer can be downloaded from SourceForge
 
 https://sourceforge.net/projects/sdmixer/
 
-Please look at the documentation at
+Documentation:
 
 https://github.com/gtadeus/sdmixer2/wiki

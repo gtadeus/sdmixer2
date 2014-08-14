@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT += core gui
 QT += xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -12,7 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = sdmixer2
 TEMPLATE = app
 CONFIG += c++11
-win32:RC_FILE = run.rc
+win32:RC_FILE = ../res/run.rc
 
 QMAKE_CFLAGS  -= -O2
 QMAKE_CFLAGS  -= -O1
@@ -24,7 +24,7 @@ QMAKE_CXXFLAGS  = -O3
 
 
 SOURCES += main.cpp\
-sdmixer.cpp \
+    sdmixer.cpp \
     pairfinder.cpp \
     filter.cpp \
     reconstructor.cpp \
@@ -42,7 +42,7 @@ HEADERS  += sdmixer.h \
 
 FORMS    += sdmixer.ui
 
-LIBS += -llibtiff -lfftw3f-3 -lfftw3-3 -lm
+LIBS += -llibtiff
 
 
 win32:INCLUDEPATH += C:\Build\include

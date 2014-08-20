@@ -354,9 +354,9 @@ void PairFinder::getHeader(QString header_file)
     }
     if(dimensions > 3)
         dimensions/=2;
-    qDebug() << "dimensions: " << dimensions;
-    qDebug() << "rawDataCols: " << rawDataCols;
-    qDebug() << "max Values from config";
+    qDebug() << "PairFinder::getHeader() dimensions: " << dimensions;
+    qDebug() << "PairFinder::getHeader() rawDataCols: " << rawDataCols;
+    qDebug() << "PairFinder::getHeader() max Values from header";
     qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
     qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
     qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;

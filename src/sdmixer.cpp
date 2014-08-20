@@ -78,8 +78,6 @@ sdmixer::sdmixer(QWidget *parent) :
     {
         qDebug() << "no default settings available";
     }
-
-
 }
 void sdmixer::HistEqCheckBoxClicked(int state)
 {
@@ -98,7 +96,6 @@ void sdmixer::HistEqCheckBoxClicked(int state)
         ui->checkBox_sqrtCum->setVisible(true);
         ui->label_CorrectionCoefficient->setVisible(true);
         ui->label_Threshold->setVisible(true);
-
     }
 
 }
@@ -403,6 +400,7 @@ bool sdmixer::getSettingsFromUI()
     maxIntensityShort = QString(ui->lineEdit_maxIntShort->text()).toDouble();
     precision = QString(ui->lineEdit_precision->text()).toDouble();
     FilterOrientation = ui->comboBox_FilterOrientation->currentText();
+    plotIntensitySpace = ui->checkBox_plotIntensitySpace->isChecked();
 
 
     // Reconstructor
@@ -499,7 +497,7 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->lineEdit_maxIntShort->setText(QString::number(s.getMaxIntShort()));
     ui->lineEdit_precision->setText(QString::number(s.getPrecision()));
     ui->comboBox_FilterOrientation->setCurrentText(s.getFilterOrientation());
-    ui->comboBox_FilterOrientation->setCurrentText(s.getFilterOrientation());
+    ui->checkBox_plotIntensitySpace->setChecked(s.getPlotIntensitySpace());
 
     //Reconstructor
     ui->lineEdit_xyBinning->setText(QString::number(s.getXYbinning()));
@@ -988,4 +986,255 @@ void sdmixer::on_pushButton_saveChannel_clicked()
         //pushBackKernel(gk2);
 
     qDebug() << "test2";
+}
+void sdmixer::getHeader(QString header,
+                        Columns &columns,
+                        min_max &min_maxValues,
+                        input_file_t &INPUT_FILE)
+{
+    header = header.replace("#", "");
+
+    QDomDocument qd;
+    qd.setContent(header);
+
+    QDomElement element = qd.documentElement();
+    if(element.tagName().contains("localizations"))
+        INPUT_FILE = XYZ_FILE;
+    else
+        INPUT_FILE = PAIRS_FILE;
+
+    int index = 0;
+    if(INPUT_FILE == PAIRS_FILE)
+    {
+        for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
+        {
+            ++columns.rawDataCols;
+            QDomElement e = n.toElement();
+            if( e.tagName() == "field" )
+            {
+                if( e.attribute("identifier").contains("Short Position"))
+                {
+                    ++columns.dimensions;
+                    if(e.attribute("identifier").contains("1"))
+                    {
+                        min_maxValues.min_y = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_y = e.attribute("max").replace("m", "").toDouble();
+                        columns.yShort = index;
+                    }
+                    else if(e.attribute("identifier").contains("2"))
+                    {
+                        min_maxValues.min_z = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_z = e.attribute("max").replace("m", "").toDouble();
+                        columns.zShort = index;
+                    }
+                    else
+                    {
+                        min_maxValues.min_x = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_x = e.attribute("max").replace("m", "").toDouble();
+                        columns.xShort = index;
+                    }
+                }
+                if( e.attribute("identifier").contains("Long Position"))
+                {
+                    ++columns.dimensions;
+                    if(e.attribute("identifier").contains("1"))
+                    {
+                        min_maxValues.min_y = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_y = e.attribute("max").replace("m", "").toDouble();
+                        columns.yLong = index;
+                    }
+                    else if(e.attribute("identifier").contains("2"))
+                    {
+                        min_maxValues.min_z = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_z = e.attribute("max").replace("m", "").toDouble();
+                        columns.zLong = index;
+                    }
+                    else
+                    {
+                        min_maxValues.min_x = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_x = e.attribute("max").replace("m", "").toDouble();
+                        columns.xLong = index;
+                    }
+                }
+                if( e.attribute("identifier").contains("Filter"))
+                {
+                    INPUT_FILE = FILTER_FILE;
+                    columns.filter = index;
+                }
+                if( e.attribute("identifier").contains("ImageNumber"))
+                {
+                    columns.frame = index;
+                }
+                if( e.attribute("identifier").contains("Short Amplitude"))
+                {
+                    columns.ShortAmp = index;
+                }
+                if( e.attribute("identifier").contains("Long Amplitude"))
+                {
+                    columns.LongAmp = index;
+                }
+            }
+            ++index;
+        }
+        columns.dimensions/=2;
+    }
+    else
+    {           // XYZ FILE
+        for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
+        {
+            ++columns.rawDataCols;
+            QDomElement e = n.toElement();
+            if( e.tagName() == "field" )
+            {
+                if( e.attribute("identifier").contains("Position"))
+                {
+                    ++columns.dimensions;
+                    if(e.attribute("identifier").contains("1"))
+                    {
+                        min_maxValues.min_y = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_y = e.attribute("max").replace("m", "").toDouble();
+                        columns.y = index;
+                    }
+                    else if(e.attribute("identifier").contains("2"))
+                    {
+                        min_maxValues.min_z = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_z = e.attribute("max").replace("m", "").toDouble();
+                        columns.z = index;
+                    }
+                    else
+                    {
+                        min_maxValues.min_x = e.attribute("min").replace("m", "").toDouble();
+                        min_maxValues.max_x = e.attribute("max").replace("m", "").toDouble();
+                        columns.x = index;
+                    }
+                }
+                if( e.attribute("identifier").contains("ImageNumber"))
+                {
+                    columns.frame = index;
+                }
+                if( e.attribute("identifier").contains("Amplitude"))
+                {
+                    columns.Amplitude = index;
+                }
+            }
+            ++index;
+        }
+    }
+    qDebug() << "max Values from config";
+    qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
+    qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
+    qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;
+
+    if ( INPUT_FILE == XYZ_FILE)
+    {
+        qDebug() << "columns.rawDataCols: " << columns.rawDataCols;
+        qDebug() << "columns.dimensions: " << columns.dimensions;
+        for (int i = 0; i <columns.dimensions; ++i)
+            qDebug() << "column " << i << " : " << columns.getXYZCol(i);
+
+        qDebug() << "columns.Amplitude: " << columns.Amplitude;
+        qDebug() << "columns.frame: " << columns.frame;
+    }
+    else
+    {
+        qDebug() << "columns.rawDataCols: " << columns.rawDataCols;
+        qDebug() << "columns.dimensions: " << columns.dimensions;
+
+        for (int i = 0; i <columns.dimensions; ++i)
+            qDebug() << "Short columns " << i << " : " << columns.getShortCol(i);
+        qDebug() << "columns.ShortAmp: " << columns.ShortAmp;
+        qDebug() << "columns.frame: " << columns.frame;
+        for (int i = 0; i <columns.dimensions; ++i)
+            qDebug() << "Long column " << i << " : " << columns.getLongCol(i);
+        qDebug() << "columns.LongAmp: " << columns.LongAmp;
+        if( INPUT_FILE == FILTER_FILE)
+            qDebug() << "columns.filter: " << columns.filter;
+    }
+    switch (INPUT_FILE)
+    {
+        case FILTER_FILE:
+            qDebug() << "This is a Filter File";
+            break;
+        case PAIRS_FILE:
+            qDebug() << "This is a Pairs File";
+            break;
+        case XYZ_FILE:
+            qDebug() << "This is a XYZ File";
+            break;
+        default:
+            break;
+    }
+}
+void sdmixer::writeHeader(QTextStream &out,
+                          int dimensions,
+                          min_max &min_maxValues,
+                          input_file_t &INPUT_FILE)
+{
+    QDomDocument pf_header;
+
+    QDomElement paired_localizations = pf_header.createElement("PairedLocalizations");
+    paired_localizations.setAttribute("name", "sdmixer");
+    paired_localizations.setAttribute("version", QString::number(SDMIXER_VERSION) );
+    pf_header.appendChild(paired_localizations);
+
+
+    QString current_dim;
+
+    for(int i = 0; i < dimensions; ++i)
+    {
+        QDomElement shortLoc = pf_header.createElement("field");
+        current_dim = QString::number(i);
+        QString shortPosition = "Short Position-";
+        shortPosition.append(current_dim);
+        shortLoc.setAttribute("identifier", shortPosition);
+        QString min = QString::number(min_maxValues.getMin(i));
+        min.append("m");
+        QString max = QString::number(min_maxValues.getMax(i));
+        max.append("m");
+        shortLoc.setAttribute("min", min);
+        shortLoc.setAttribute("max", max);
+        paired_localizations.appendChild(shortLoc);
+    }
+
+    QDomElement ShortIntensity = pf_header.createElement("field");
+    ShortIntensity.setAttribute("identifier", "Short Amplitude");
+    paired_localizations.appendChild(ShortIntensity);
+
+    QDomElement frame = pf_header.createElement("field");
+    frame.setAttribute("identifier", "ImageNumber");
+    paired_localizations.appendChild(frame);
+
+    for(int i = 0; i < dimensions; ++i)
+    {
+        QDomElement longLoc = pf_header.createElement("field");
+        current_dim = QString::number(i);
+        QString longPosition = "Long Position-";
+        longPosition.append(current_dim);
+        longLoc.setAttribute("identifier", longPosition);
+        QString min = QString::number(min_maxValues.getMin(i));
+        min.append("m");
+        QString max = QString::number(min_maxValues.getMax(i));
+        max.append("m");
+        longLoc.setAttribute("min", min);
+        longLoc.setAttribute("max", max);
+        paired_localizations.appendChild(longLoc);
+    }
+
+    QDomElement LongIntensity = pf_header.createElement("field");
+    LongIntensity.setAttribute("identifier", "Long Amplitude");
+    paired_localizations.appendChild(LongIntensity);
+
+    if(INPUT_FILE == FILTER_FILE)
+    {
+        QDomElement Filter = pf_header.createElement("field");
+        Filter.setAttribute("identifier", "Filter");
+        paired_localizations.appendChild(Filter);
+    }
+
+
+    QString header = pf_header.toString();
+    header.replace("\n", "");
+    header.insert(0, "#");
+
+    out << header << "\n";
 }

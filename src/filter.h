@@ -22,6 +22,8 @@ class Filter : public QObject
 {
     Q_OBJECT
 public:
+
+
     Filter(sdmixer *s, QString file);
     Filter(sdmixer *s, std::vector<sdmixer::Localization> *data);
 
@@ -35,6 +37,11 @@ public:
 
     void doWorkNow();
 
+    void EdgeDetectionSobel(QImage &source,
+                            QImage &sobelDestination);
+
+    void getHeader(QString header);
+
 signals:
     void finished();
 
@@ -42,10 +49,15 @@ public slots:
     void doWork();
 
 private:
+    sdmixer::Columns columns;
+    sdmixer::input_file_t INPUT_FILE;
 
     sdmixer *sdm;
     int maxIntLong;
     int maxIntShort;
+
+    bool FilterInput;
+    bool force2D;
 
     QString doWorkLaterParameter;
 

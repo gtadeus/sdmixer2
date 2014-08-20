@@ -472,11 +472,6 @@
            <widget class="QComboBox" name="comboBox_zOffset">
             <item>
              <property name="text">
-              <string>px</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
               <string>nm</string>
              </property>
             </item>
@@ -579,11 +574,6 @@
           </item>
           <item>
            <widget class="QComboBox" name="comboBox_zEpsilon">
-            <item>
-             <property name="text">
-              <string>px</string>
-             </property>
-            </item>
             <item>
              <property name="text">
               <string>nm</string>
@@ -799,17 +789,33 @@
         <rect>
          <x>10</x>
          <y>20</y>
-         <width>230</width>
-         <height>119</height>
+         <width>235</width>
+         <height>124</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_4">
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lineEdit_maxIntShort"/>
+        </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_20">
           <property name="text">
            <string>Filter Orientation</string>
           </property>
          </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="lineEdit_precision"/>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_15">
+          <property name="text">
+           <string>max. Intensity (Long)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="lineEdit_maxIntLong"/>
         </item>
         <item row="3" column="1">
          <widget class="QComboBox" name="comboBox_FilterOrientation">
@@ -825,8 +831,12 @@
           </item>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="QLineEdit" name="lineEdit_precision"/>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_16">
+          <property name="text">
+           <string>max. Intensity (Short)</string>
+          </property>
+         </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_17">
@@ -835,25 +845,19 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_15">
+        <item row="4" column="1">
+         <widget class="QCheckBox" name="checkBox_plotIntensitySpace">
           <property name="text">
-           <string>max. Intensity (Long)</string>
+           <string/>
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_16">
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_18">
           <property name="text">
-           <string>max. Intensity (Short)</string>
+           <string>Plot Intensity Space</string>
           </property>
          </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="lineEdit_maxIntShort"/>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_maxIntLong"/>
         </item>
        </layout>
       </widget>
@@ -870,6 +874,9 @@
         <string>Filter Files must be </string>
        </property>
       </widget>
+      <zorder>layoutWidget</zorder>
+      <zorder>label_FilterFileInstruction</zorder>
+      <zorder>checkBox</zorder>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_4">
@@ -899,7 +906,7 @@
        <item row="1" column="0">
         <widget class="QCheckBox" name="checkBox_scliceZ">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Reslice in z Direction</string>
@@ -916,7 +923,7 @@
        <item row="2" column="1">
         <widget class="QLineEdit" name="lineEdit_startSliceZ">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -930,7 +937,7 @@
        <item row="3" column="1">
         <widget class="QLineEdit" name="lineEdit_endSliceZ">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
         </widget>
        </item>

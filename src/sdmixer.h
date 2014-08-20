@@ -106,6 +106,24 @@ public:
                 return zLong;
             return 0;
         }
+        void setShortDim(int dim, double val)
+        {
+            if ( dim == 0)
+                xShort = val;
+            if ( dim == 1)
+                yShort = val;
+            if ( dim == 2)
+                zShort = val;
+        }
+        void setLongDim(int dim, double val)
+        {
+            if ( dim == 0)
+                xLong = val;
+            if ( dim == 1)
+                yLong = val;
+            if ( dim == 2)
+                zLong = val;
+        }
     };
     struct min_max {
         double min_x=0, max_x=0;
@@ -134,21 +152,58 @@ public:
         }
 
     };
+    struct Columns{
+        int xShort;
+        int yShort;
+        int zShort;
+        int ShortAmp;
+        int frame;
+        int xLong;
+        int yLong;
+        int zLong;
+        int LongAmp;
+        int filter;
+        int dimensions=0;
 
-    enum camera_orientation_t{
-        LEFT_RIGHT,
-        TOP_BOTTOM
+        int x, y, z;
+        int Amplitude;
+        int rawDataCols=0;
+
+        int getShortCol(int dim)
+        {
+            if ( dim == 0)
+                return xShort;
+            if ( dim == 1)
+                return yShort;
+            if ( dim == 2)
+                return zShort;
+            return 0;
+        }
+        int getLongCol(int dim)
+        {
+            if ( dim == 0)
+                return xLong;
+            if ( dim == 1)
+                return yLong;
+            if ( dim == 2)
+                return zLong;
+            return 0;
+        }
+        int getXYZCol(int dim)
+        {
+            if ( dim == 0)
+                return x;
+            if ( dim == 1)
+                return y;
+            if ( dim == 2)
+                return z;
+            return 0;
+        }
+
     };
-    enum short_channel_position_t{
-        TOP,
-        BOTTOM,
-        LEFT,
-        RIGHT
-    };
-    enum filter_orientation_t{
-        X_SHORT,
-        Y_SHORT
-    };
+    enum input_file_t{XYZ_FILE, PAIRS_FILE, FILTER_FILE};
+
+
 
     struct offset_units{
         QString xOffset;
@@ -237,6 +292,7 @@ public:
     double getMaxIntLong(){return this->maxIntensityLong;}
     double getPrecision(){return this->precision;}
     QString getFilterOrientation(){return this->FilterOrientation;}
+    bool getPlotIntensitySpace() { return this->plotIntensitySpace;}
 
     // Reconstructor
     double getReconstructor_xyBinning(){return this->xyBinning;}
@@ -268,12 +324,7 @@ public:
 
     //void pushBackKernel(gaussian_kernel gk){ vec_kernel.push_back(gk); }
 
-
-    std::map<camera_orientation_t, QString> cam_orient;
-    std::map<short_channel_position_t, QString> short_pos;
-    std::map<filter_orientation_t, QString> filter_orient;
-
-    int getCurrentDimensions() { return current_dimensions; }
+    //int getCurrentDimensions() { return current_dimensions; }
 
     void runStage(int stage);
     void nextStage2();
@@ -281,6 +332,16 @@ public:
     int getCurrentDimensions(QString file);
 
     void writeToLogFile(QString msg, QString msg2="");
+
+    void getHeader(QString header,
+                   Columns &columns,
+                   min_max &min_maxValues,
+                   input_file_t &INPUT_FILE);
+
+    void writeHeader(QTextStream &out,
+                     int dimensions,
+                     min_max &min_maxValues,
+                     input_file_t &INPUT_FILE);
 
 
 protected:
@@ -360,6 +421,7 @@ private:
     int maxIntensityShort=0;
     double precision=0;
     QString FilterOrientation;
+    bool plotIntensitySpace;
 
     double xyBinning=0;
     double zBinning=0;

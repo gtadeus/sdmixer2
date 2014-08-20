@@ -37,6 +37,7 @@ public:
     void setMaxIntLong(int val){this->maxIntensityLong=val;}
     void setMaxIntShort(int val){this->maxIntensityShort=val;}
     void setPrecision(double val){this->precision=val;}
+    void setPlotIntensitySpace(bool val){this->plotIntensitySpace=val;}
 
     //Reconstructor
     void setXYBinning(double val){this->xyBinning=val;}
@@ -75,6 +76,7 @@ public:
     int getMaxIntShort(){return maxIntensityShort;}
     double getPrecision(){return precision;}
     QString getFilterOrientation(){return FilterOrientation; }
+    bool getPlotIntensitySpace() {return plotIntensitySpace; }
 
     double getXYbinning(){return xyBinning;}
     double getZbinning(){return zBinning;}
@@ -116,6 +118,7 @@ private:
     int maxIntensityShort=0;
     double precision=0.0;
     QString FilterOrientation;
+    bool plotIntensitySpace;
 
     // Reconstructor
     double xyBinning=0;

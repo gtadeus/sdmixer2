@@ -50,8 +50,9 @@ void Reconstructor::Convolution2()
     uint16 *image_out = static_cast<uint16*>((void*)conv_out_file.data());
 
 
-    qDebug() << "kernel_:size: " << krn.size;
-    qDebug() << "kernel_3D: " << krn.make3D;
+    qDebug() << "kernel.size " << krn.size;
+    qDebug() << "kernel.make3D " << krn.make3D;
+    qDebug() << "kernel.data[0] " <<krn.data[0];
 
     std::vector<double> sum_vec;
     std::vector<ConvPixel> conv_res_vec;
@@ -357,7 +358,6 @@ void Reconstructor::setArray()
 
         ss << image_size[i] << "  ";
         qDebug()<<"set Array image_size[i]: " << image_size[i];
-        //maxPixels*=(image_max[i]+1);
     }
     sdm->writeToLogFile(QString::fromStdString(ss.str()));
 
@@ -369,7 +369,6 @@ void Reconstructor::setArray()
         Coordinates c = *it;
         for(int i = 0; i < dimensions; ++i)
         {
-            //qDebug() << c.get(i);
             it->set(i, c.get(i)-image_min[i]);
             if(it->get(i)>=image_size[i])
             {
@@ -377,7 +376,6 @@ void Reconstructor::setArray()
                 xyz.erase(it);
                 --it;
             }
-            //qDebug() << c.get(i);
         }
 
     }
@@ -451,35 +449,6 @@ void Reconstructor::setArray()
 }
 
 
-void Reconstructor::map8bit()
-{
-    qDebug() << "map8 bit";
-
-    boost::iostreams::mapped_file_sink image;
-    boost::iostreams::mapped_file_params params;
-    params.path = tiff_temp_file;
-    image.open(params);
-    uint8 *img_in =static_cast<uint8*>((void*)image.data());
-
-/*
-    uint64_t NPixel = 1;
-    for (int i = 0; i < dimensions; ++i)
-        NPixel*=image_size[i];*/
-
-    //params_file_out.new_file_size =  maxPixels*sizeof(uint8);
-
-
-    for(uint64_t i = 0; i < maxPixels; ++i)
-    {
-        img_in[i] =
-                (uint8_t) ( (double) img_in[i] - dbl_image_min)*
-                (255.0/(dbl_image_max-dbl_image_min));
-    }
-    image.close();
-    qDebug() << "map8 bit finished";
-
-}
-
 void Reconstructor::CreateGaussianKernel()
 {
     float f;
@@ -528,40 +497,11 @@ void Reconstructor::CreateGaussianKernel()
         krn.data[i] = krn.data[i]/sum;
 
 }
-void Reconstructor::setKernel()
-{
-    krn.sigma_xy=2;
-    krn.sigma_z=2;
-    krn.make3D=true ;
-    krn.data = new float[krn.size*krn.size*krn.size];
-    CreateGaussianKernel();
-}
 
 uint64_t Reconstructor::linearIndex(Coordinates c)
 {
-    //qDebug() << "linIndex of: " << c.get(0) << "  " << c.get(1) << " " << c.get(2);
-    //qDebug() << (uint64_t) c.get(0) + (uint64_t) (image_size[0])*( c.get(1) + (uint64_t) (image_size[1])*c.get(2));
     return (uint64_t) c.get(0) + (uint64_t) (image_size[0])*( c.get(1) + (uint64_t) (image_size[1])*c.get(2));
-    //return c.get(2) + (uint64_t) (image_max[2]+1)*( c.get(1) + (uint64_t) (image_max[1]+1)*c.get(0));
-    //return c.get(0) + (uint64_t) (image_max[0]+1)*c.get(1) + (uint64_t) (image_max[1]+1)*(image_max[0]+1)*c.get(2);
-    //return image_max[0]*image_max[1]*c.get(0)+image_max[1]*c.get(1)+c.get(2);
-
 }
-
-uint64_t Reconstructor::linearIndex3DFFT( int i, int j, int k, int z_fftw, int h_fftw)
-{
-    return (uint64_t) k + ((uint64_t)(z_fftw+2))*((uint64_t)(j+h_fftw*i));
-}
-uint64_t Reconstructor::linearIndex2DFFT( int i, int j, int h_fftw)
-{
-    return (uint64_t)j+((uint64_t)(h_fftw+2))*((uint64_t)i);
-}
-uint64_t Reconstructor::linearIndexTIFF( int i, int j, int k, int img_sizeX, int img_sizeY)
-{
-    return (uint64_t)i+((uint64_t)img_sizeX)*((uint64_t) j+ ((uint64_t)img_sizeY)*((uint64_t)k) );
-}
-
-
 void Reconstructor::setMinMax(sdmixer::min_max m)
 {
     // min max, convert from m to nm
@@ -578,6 +518,7 @@ void Reconstructor::setMinMax(sdmixer::min_max m)
 
     min_val[2]=round(m.min_z * 1e9);
     max_val[2]=round(m.max_z * 1e9);
+
     qDebug() << min_val[0] << "  " << max_val[0];
     qDebug() << min_val[1] << "  " << max_val[1];
     qDebug() << min_val[2] << "  " << max_val[2];
@@ -587,128 +528,43 @@ void Reconstructor::setMinMax(sdmixer::min_max m)
 
     for (int i = 0; i < dimensions; ++i)
     {
-        qDebug() << i;
       if(max_val[i] != 0)
       {
-          //qDebug() << "binning: " << binning[i];
           image_max[i] = round(max_val[i]/binning[i]);
           image_min[i] = round(min_val[i]/binning[i]);
           image_size[i] = (image_max[i]-image_min[i]) + 1;
           qDebug() << "Reconstructor setMinMax min: " << image_min[i] << "  " << image_max[i] << " size: " <<image_size[i];
+          minMaxDefined = true;
       }
-
-
-
     }
-    minMaxDefined=true;
-    qDebug() << "reconstructor min max ready";
-    //image_max[i] = round(max_val[i])/xy_binning;
-    //image_max[2] = round(max_val[2])/z_binning;
+
+    qDebug() << "Reconstructor::setMinMax(sdmixer::min_max m) ready";
+
 }
 
 
-void Reconstructor::getHeader(QString header)
-{
-    header = header.replace("#", "");
-
-    QDomDocument qd;
-    qd.setContent(header);
-
-    QDomElement element = qd.documentElement();
-
-    if(element.tagName().contains("localizations"))
-        xyzFile = true;
-dimensions=0;
-    for(QDomNode n = element.firstChild(); !n.isNull(); n = n.nextSibling())
-    {
-        QDomElement e = n.toElement();
-        if( e.tagName() == "field" )
-        {
-            ++rawDataCols;
-            if( e.attribute("identifier").contains("Position"))
-            {
-                ++dimensions;
-
-                if(e.attribute("identifier").contains("1"))
-                {
-                    min_maxValues.min_y = e.attribute("min").replace("m", "").toDouble();
-                    min_maxValues.max_y = e.attribute("max").replace("m", "").toDouble();
-                }
-                else if(e.attribute("identifier").contains("2"))
-                {
-                    min_maxValues.min_z = e.attribute("min").replace("m", "").toDouble();
-                    min_maxValues.max_z = e.attribute("max").replace("m", "").toDouble();
-                }
-                else
-                {
-                    min_maxValues.min_x = e.attribute("min").replace("m", "").toDouble();
-                    min_maxValues.max_x = e.attribute("max").replace("m", "").toDouble();
-                }
-            }
-            if( e.attribute("identifier").contains("Filter"))
-            {
-                FilterInput = true;
-            }
-        }
-
-    }
-    if(dimensions > 3)
-        dimensions/=2;
-
-    dimDefined=true;
-    if(force2D)
-        dimensions = 2;
-    qDebug() << "FilterInput: " << FilterInput;
-    qDebug() << "xyzFile: " << xyzFile;
-    qDebug() << "dimensions: " << dimensions;
-    qDebug() << "max Values from config";
-    qDebug() << min_maxValues.min_x << "  " << min_maxValues.max_x;
-    qDebug() << min_maxValues.min_y << "  " << min_maxValues.max_y;
-    qDebug() << min_maxValues.min_z << "  " << min_maxValues.max_z;
-
-    //if(FilterInput)
-    {
-        //dimensions--;
-        setMinMax(min_maxValues);
-    }
-
-    minMaxDefined=true;
-
-}
 void Reconstructor::getSettingsFromGUI()
 {
-    maxPixels=1;
+
     binning[0] = sdm->getReconstructor_xyBinning();
     binning[1] = sdm->getReconstructor_xyBinning();
     binning[2] = sdm->getReconstructor_zBinning();
-    if(!dimDefined)
-    {
-        dimensions = sdm->getCurrentDimensions();
-        qDebug()<<"dimensions_ " << dimensions;
-    }
-    qDebug() << "minMaxDefined: " << minMaxDefined;
-    if(!minMaxDefined)
-    {
-        //qDebug() << (sdm->getPF_min_maxValues()).;
-        setMinMax(sdm->getPF_min_maxValues());
-
-    }
-    else
-        setMinMax(min_maxValues);
 
     runConvolution=sdm->getRunConvolution();
 
-    qDebug() << "get ConvKernel";
-    oneConvolutionKernel = sdm->getOneKernelForAllChannels();
-    qDebug() <<oneConvolutionKernel;
     NM_PER_PX = sdm->getPixelSize();
     force2D = sdm->getForce2D();
+    if(force2D)
+    {
+        dimensions = 2;
+        image_size[2]=0;
+    }
 
     perform_hist_eq = sdm->getNonLinearHistEq();
     sqrtCum = sdm->getSqrtCummulation();
     hist_correct_value = sdm->getHisteqCoefficient();
     hist_threshold = sdm->getThreshold();
-
+    oneConvolutionKernel = sdm->getOneKernelForAllChannels();
 
     if(oneConvolutionKernel)
     {
@@ -734,7 +590,7 @@ void Reconstructor::getSettingsFromGUI()
             krn.data = new float[krn.size*krn.size];
         }
         CreateGaussianKernel();
-        //qDebug() << krn.sigma_xy;
+        qDebug() << "krn.sigma_xy " << krn.sigma_xy ;
     }
     else
     {
@@ -787,9 +643,10 @@ void Reconstructor::doWorkNow()
     QTextStream in(&f);
     QString line = in.readLine();
 
-    getHeader(line);
+    sdm->getHeader(line, columns, min_maxValues, INPUT_FILE);
+    dimensions = columns.dimensions;
 
-    if( ! xyzFile )
+    if( INPUT_FILE != sdmixer::XYZ_FILE )
     {
         while (!in.atEnd())
         {
@@ -807,37 +664,35 @@ void Reconstructor::doWorkNow()
                 index++;
                 dbl_vec.push_back(strtod(i.c_str(), NULL));
             }
-            //qDebug() << "v.size() " << v.size();
-
-
             sdmixer::Localization loc;
-            loc.xShort = dbl_vec[0];
-            loc.yShort = dbl_vec[1];
-            loc.zShort = dbl_vec[2];
-            loc.ShortIntensity = dbl_vec[3];
-            loc.frame = dbl_vec[4];
-            loc.xLong = dbl_vec[5];
-            loc.yLong =dbl_vec[6];
-            loc.zLong = dbl_vec[7];
-            loc.LongIntensity = dbl_vec[8];
-            if(v.size()>9)
+            for(int i = 0; i < dimensions; ++i)
             {
-                loc.filter = dbl_vec[9];
+                int indL = columns.getLongCol(i);
+                int indS = columns.getShortCol(i);
+                loc.setLongDim(i, dbl_vec[indL]);
+                loc.setShortDim(i, dbl_vec[indS]);
+            }
+            if(INPUT_FILE == sdmixer::FILTER_FILE)
+                loc.filter = dbl_vec[columns.filter];
+
+            loc.ShortIntensity = dbl_vec[columns.ShortAmp];
+            loc.LongIntensity = dbl_vec[columns.LongAmp];
+            loc.frame = dbl_vec[columns.frame];
+
+            if(INPUT_FILE == sdmixer::FILTER_FILE)
+            {
+                loc.filter = dbl_vec[columns.filter];
                 if(loc.filter>max_filter)
                     max_filter=loc.filter;
             }
-
-            //qDebug() << loc.xShort;
-            //qDebug() << loc.LongIntensity;
-
 
             sdm->pushBackLocalization(loc);
         }
         input_data = sdm->getPfOutput();
         qDebug() << "loaded ";
 
-        qDebug() << " is this a filter_file?: " << FilterInput;
-        if(FilterInput)
+        //qDebug() << " is this a filter_file?: " << FilterInput;
+        if(INPUT_FILE == sdmixer::FILTER_FILE)
         {
             initData(1);
 
@@ -869,7 +724,8 @@ void Reconstructor::doWorkNow()
             Coordinates c;
             for(int i = 0; i < dimensions; ++i)
             {
-                c.set(i, round(dbl_vec[i]/binning[i]));
+                int ind = columns.getXYZCol(i);
+                c.set(i, round(dbl_vec[ind]/binning[i]));
             }
             xyz.push_back(c);
         }
@@ -906,11 +762,7 @@ Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
 }
 void Reconstructor::initData(int current_filter)
 {
-    if(force2D)
-    {
-        dimensions = 2;
-        image_size[2]=0;
-    }
+    setMinMax(min_maxValues);
 
     int limage_min[3]={0};
     int limage_max[3]={0};
@@ -984,10 +836,18 @@ Reconstructor::Reconstructor(sdmixer *s,
     this->sdm = s;
 
     input_data = data;
-    min_maxValues = sdm->getPF_min_maxValues();
-    minMaxDefined=true;
-
     input_file = sdm->getCurrentFile();
+
+    QFile f(input_file);
+    f.open(QIODevice::ReadOnly| QIODevice::Text);
+
+    QTextStream in(&f);
+    QString line = in.readLine();
+
+    sdm->getHeader(line, columns, min_maxValues, INPUT_FILE);
+    dimensions = columns.dimensions;
+    f.close();
+
     QFile qf(input_file);
     QFileInfo fi(qf);
 

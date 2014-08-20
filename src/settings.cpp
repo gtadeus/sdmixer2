@@ -42,6 +42,7 @@ Settings::Settings(sdmixer *s)
     setMaxIntShort(s->getMaxIntShort());
     setPrecision(s->getPrecision());
     FilterOrientation = s->getFilterOrientation();
+    plotIntensitySpace = s->getPlotIntensitySpace();
 
     //Reconstructor
     setXYBinning(s->getReconstructor_xyBinning());
@@ -160,6 +161,7 @@ void Settings::initXML(){
     appendChildNode(filter, "maxIntLong", maxIntensityLong);
     appendChildNode(filter, "precision", precision);
     appendChildNode(filter, "FilterOrientation", FilterOrientation);
+    appendChildNode(filter, "plotIntensitySpace", plotIntensitySpace);
 
     QDomElement reconstructor = createField("ReconstructorSettings");
     settings.appendChild(reconstructor);
@@ -391,6 +393,10 @@ void Settings::loadFromFile(QString file){
                     if (f.attribute("name") == "FilterOrientation")
                     {
                         FilterOrientation = f.attribute("string");
+                    }
+                    if (f.attribute("name") == "plotIntensitySpace")
+                    {
+                        plotIntensitySpace = f.attribute("number").toInt();
                     }
                 }
             }

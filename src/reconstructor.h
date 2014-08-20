@@ -84,16 +84,13 @@ public:
     void getIndexFromXYZ();
     void XYZfromFilter();
 
-    void map8bit();
     void setOutputPath();
     void outputTIFF();
     void setMinMax(sdmixer::min_max m);
 
 
     uint64_t linearIndex(Coordinates c);
-    uint64_t linearIndex3DFFT( int i, int j, int k, int z_fftw, int h_fftw);
-    uint64_t linearIndex2DFFT( int i, int j, int h_fftw);
-    uint64_t linearIndexTIFF( int i, int j, int k, int img_sizeX, int img_sizeY);
+
 
     void getMinMax();
     void setArray();
@@ -146,9 +143,8 @@ private:
     bool perform_hist_eq;
     bool sqrtCum;
 
-    int xCol=0;
-    int yCol=1;
-    int zCol=2;
+    sdmixer::Columns columns;
+    sdmixer::input_file_t INPUT_FILE;
 
     int dimensions=0;
 

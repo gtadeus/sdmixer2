@@ -23,6 +23,18 @@ sdmixer::sdmixer(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::sdmixer)
 {
+
+    tiff_temp_file = QDir::tempPath();
+    tiff_temp_file.append("/tiff_uint16.tmp");
+    qDebug() << tiff_temp_file;
+    conv_image_temp_file = QDir::tempPath();
+    conv_image_temp_file.append("/conv_img.tmp");
+    qDebug() << conv_image_temp_file;
+
+
+
+
+    qDebug() << QDir::homePath();
     pf_output = new std::vector<Localization>();
 
     ui->setupUi(this);

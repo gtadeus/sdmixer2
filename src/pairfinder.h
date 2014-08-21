@@ -91,6 +91,9 @@ private:
      //QMutex mutex;
      //bool create_output = false;
 
+    sdmixer::Columns columns;
+    sdmixer::input_file_t INPUT_FILE;
+
     //internal Variables
     std::vector<fishing_run> fishing_results;
 

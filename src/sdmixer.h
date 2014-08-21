@@ -4,6 +4,10 @@
 #define DEFAULT_SETTINGS "default_settings.txt"
 #define SDMIXER_VERSION  2.01
 
+
+
+#include <QStandardPaths>
+
 #include <QMainWindow>
 #include <QListWidget>
 #include <QDebug>
@@ -310,6 +314,9 @@ public:
     int getStartRescliceZ(){ return startRescliceZ; }
     int getEndRescliceZ() { return endRescliceZ;}
 
+    QString getTiffTempFile(){ return tiff_temp_file; }
+    QString getConvImgTempFile(){ return conv_image_temp_file; }
+
     std::vector<Localization> * getPfOutput(){ return pf_output; }
 
 
@@ -456,6 +463,9 @@ private:
     std::vector<QString>::size_type current_file = 0;
 
     std::ofstream logFile;
+
+    QString tiff_temp_file;
+    QString conv_image_temp_file;
 
 
 };

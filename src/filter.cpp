@@ -345,8 +345,8 @@ void Filter::doWork()
 
     qDebug() << "min_val intspace" << min_value_intSpace << " @ind: " <<min_value_index;
     qDebug() << "max_val intspace" << max_value_intSpace << " @ind: " <<max_value_index;
-
-
+    if(sdm->getPlotIntensitySpace())
+    {
     int range_x = round(0.001*IntSpace_width+2.2);
     if (range_x < 2)
         range_x = 2;
@@ -369,8 +369,8 @@ void Filter::doWork()
             int ind = i+j*IntSpace_width;
             int SUM = 0;
 
-            if ( i < range_x || i >= IntSpace_width-range_x ||
-                 j < range_y || j >= IntSpace_height-range_y )
+            if ( i < half_range_x || i >= IntSpace_width-half_range_x ||
+                 j < half_range_y || j >= IntSpace_height-half_range_y )
             {
                 SUM=IntensitySpaceArray[ind];
             }
@@ -438,8 +438,10 @@ void Filter::doWork()
     for ( ff = FilterInputFiles.begin(); ff < FilterInputFiles.end(); ++ff)
     {
         QString ii = *ff;
+        qDebug() << "filter file: " << ii;
         QImage img(ii);
-        QImage out(ii);
+        QImage out(img.width(), img.height(), QImage::Format_RGB32);
+        qDebug() << "out.width: "<< out.width() << " height: " <<out.height();
 
         EdgeDetectionSobel(img, out);
 
@@ -449,8 +451,8 @@ void Filter::doWork()
                 QColor clrPixel(out.pixel(i, j));
                 if(clrPixel.black() != 0)
                 {
-                    if ( i < range_x || i >= IntSpace_width-range_x ||
-                         j < range_y || j >= IntSpace_height-range_y )
+                    if ( i < half_range_x || i >= IntSpace_width-half_range_x ||
+                         j < half_range_y || j >= IntSpace_height-half_range_y )
                     {
                         IntSpaceOut.setPixel(i, j, qRgb(0,0,0));
                     }
@@ -470,7 +472,7 @@ void Filter::doWork()
     }
     qDebug() << "finished edge detection" ;
     IntSpaceOut.save(intensitySpaceFile);
-
+}
     qDebug() <<" finished filter";
     emit finished();
 }
@@ -499,11 +501,12 @@ void Filter::EdgeDetectionSobel(QImage &source,
     int width = source.width();
     int height = source.height();
 
+    qDebug() << "EdgeDetection: " << width << " x " << height;
 
     int I, J;
     long sumX, sumY;
     int SUM;
-    uint rawColour;
+    QRgb rawColour;
 
     for (int y = 0; y < height; ++y)
     {
@@ -528,10 +531,13 @@ void Filter::EdgeDetectionSobel(QImage &source,
                     }
                 }
                 SUM = abs(sumX) + abs(sumY); /*---GRADIENT MAGNITUDE APPROXIMATION (Myler p.218)----*/
+                //qDebug() << "rawColour: " << rawColour << " qRed " << qRed(rawColour) << " qGreen " << qGreen(rawColour) << " qBlue " << qBlue(rawColour) << " SUM " << SUM;
                 if (SUM > 255)
                     SUM = 255;
 
                 }
+            //qDebug() << "x: " << x << " y: " << y;
+            //sobelDestination.setPixel(x, y, qRgb(0, 0, 0));
             sobelDestination.setPixel(x, y, qRgb(SUM, SUM, SUM));
             /**dp = qRgb(SUM, SUM, SUM);
             ++p;

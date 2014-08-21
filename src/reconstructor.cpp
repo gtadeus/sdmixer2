@@ -3,7 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-bool Reconstructor::file_exists (char *filename)
+bool Reconstructor::file_exists (const char *filename)
 {
     if (FILE *file = fopen(filename, "r"))
     {
@@ -15,7 +15,7 @@ bool Reconstructor::file_exists (char *filename)
 
 }
 
-void Reconstructor::Convolution2()
+void Reconstructor::Convolution(Kernel krn)
 {
     qDebug() << " started convolution 2";
     uint64_t img_sizeX = image_size[0];
@@ -35,15 +35,15 @@ void Reconstructor::Convolution2()
     boost::iostreams::mapped_file mmap_image_in;
     boost::iostreams::mapped_file_params params_in;
     params_in.mode = (std::ios::out | std::ios::in);
-    params_in.path = tiff_temp_file;
+    params_in.path = tiff_temp_file.toLocal8Bit().data();
     mmap_image_in.open(params_in);
     uint16 *image_in =static_cast<uint16*>((void*)mmap_image_in.data());
 
     boost::iostreams::mapped_file conv_out_file;
     boost::iostreams::mapped_file_params params_out;
-    if(file_exists(convolved_image))
-        remove(convolved_image);
-    params_out.path = convolved_image;
+    if(file_exists(convolved_image.toLocal8Bit().data()))
+        remove(convolved_image.toLocal8Bit().data());
+    params_out.path = convolved_image.toLocal8Bit().data();
     params_out.mode = (std::ios::out | std::ios::in);
     params_out.new_file_size =  NPixel*sizeof(uint16);
     conv_out_file.open(params_out);
@@ -176,9 +176,9 @@ void Reconstructor::hist_eq()
     boost::iostreams::mapped_file_sink file;
     boost::iostreams::mapped_file_params params;
     if(runConvolution)
-        params.path = convolved_image;
+        params.path = convolved_image.toLocal8Bit().data();
     else
-        params.path = tiff_temp_file;
+        params.path = tiff_temp_file.toLocal8Bit().data();
 
     file.open(params);
 
@@ -276,7 +276,9 @@ void Reconstructor::doWork()
 
     bool repeat =true;
 
-    if(tiff_out_file.isEmpty())
+    qDebug() << "doWork max_filter: " << max_filter;
+
+    while(repeat)
     {
         input_file = sdm->getCurrentFile();
         QFile qf(input_file);
@@ -295,17 +297,17 @@ void Reconstructor::doWork()
 
         tiff_out_file = output_dir.append("/");
         tiff_out_file = tiff_out_file.append(input_base_name);
-        if(FilterInput)
+
+        if(INPUT_FILE != sdmixer::XYZ_FILE)
         {
             tiff_out_file = tiff_out_file.append("_ch");
             tiff_out_file = tiff_out_file.append(QString::number(curr_filter));
         }
 
         tiff_out_file.append(".tif");
-    }
 
-    while(repeat && curr_filter<=max_filter)
-    {
+        qDebug() << "ouput_file: " << tiff_out_file;
+
         qDebug() << "curr_filter: " << curr_filter;
         repeat=false;
         setArray();
@@ -313,8 +315,17 @@ void Reconstructor::doWork()
         if(runConvolution)
         {
             sdm->writeToLogFile("starting convolution");
+            qDebug() << "using Kernel " << curr_filter-1;
+            Kernel krn;
+            if(!oneConvolutionKernel)
+                krn = all_kernels[curr_filter-1];
+            else
+                krn = all_kernels[0];
 
-            Convolution2();
+            std::stringstream ss;
+            ss << "Kernel: sigma_xy = " << krn.sigma_xy << " nm, sigma_z = " << krn.sigma_z << " nm";
+            sdm->writeToLogFile(QString::fromStdString(ss.str()));
+            Convolution(krn);
             sdm->writeToLogFile("finished convolution");
         }
         if(perform_hist_eq)
@@ -326,22 +337,25 @@ void Reconstructor::doWork()
         sdm->writeToLogFile("starting TIFF Output");
         outputTIFF();
         sdm->writeToLogFile("finished TIFF Output");
-        if(FilterInput)
+        if(INPUT_FILE == sdmixer::FILTER_FILE)
         {
-            repeat=true;
-            curr_filter++;
-            initData(curr_filter);
+            if(curr_filter < max_filter)
+            {
+                repeat=true;
+                curr_filter++;
+                initData(curr_filter);
+            }
         }
     }
 
-    if(file_exists(tiff_temp_file))
-        remove(tiff_temp_file);
-    if(file_exists(fft_src_file))
+    if(file_exists(tiff_temp_file.toLocal8Bit().data()))
+        remove(tiff_temp_file.toLocal8Bit().data());
+    /*if(file_exists(fft_src_file))
         remove(fft_src_file);
     if(file_exists(fft_krnl_file))
-        remove(fft_krnl_file);
-    if(file_exists(convolved_image))
-        remove(convolved_image);
+        remove(fft_krnl_file);*/
+    if(file_exists(convolved_image.toLocal8Bit().data()))
+        remove(convolved_image.toLocal8Bit().data());
 
     emit finished();
 }
@@ -350,6 +364,22 @@ void Reconstructor::doWork()
 void Reconstructor::setArray()
 {
     qDebug() << "start set array";
+    maxPixels=1;
+
+    ReslizeZ=sdm->getResliceZ();
+    if(ReslizeZ)
+    {
+        startResliceZ = sdm->getStartRescliceZ();
+        endResliceZ = sdm->getEndRescliceZ();
+        std::stringstream ss;
+        ss << "Reslice Z: start = " << startResliceZ << " , end = " << endResliceZ;
+        sdm->writeToLogFile(QString::fromStdString(ss.str()));
+        //image_min[2] += startResliceZ;
+        //image_max[2] = image_max[2] - (image_size[2]-endResliceZ);
+        //image_size[2] = (image_max[2] - image_min[2]) + 1;
+        image_size[2] = (endResliceZ - startResliceZ) + 1;
+    }
+
     std::stringstream ss;
     ss << "image_size (px) : ";
     for(int i = 0; i < dimensions; ++i)
@@ -361,6 +391,7 @@ void Reconstructor::setArray()
     }
     sdm->writeToLogFile(QString::fromStdString(ss.str()));
 
+
     std::vector<Coordinates>::iterator it;
 
     int counter=0;
@@ -370,11 +401,27 @@ void Reconstructor::setArray()
         for(int i = 0; i < dimensions; ++i)
         {
             it->set(i, c.get(i)-image_min[i]);
-            if(it->get(i)>=image_size[i])
+            if(i==2 && ReslizeZ)
             {
-                counter++;
-                xyz.erase(it);
-                --it;
+                it->set(i, it->get(i)-startResliceZ);
+                int val = it->get(i);
+                if(val < 0 || val >= (endResliceZ-startResliceZ))
+                {
+                    counter++;
+                    xyz.erase(it);
+                    --it;
+                }
+
+            }
+            else
+            {
+                if(it->get(i)>=image_size[i])
+                {
+                    counter++;
+                    xyz.erase(it);
+                    --it;
+                }
+
             }
         }
 
@@ -384,9 +431,9 @@ void Reconstructor::setArray()
     boost::iostreams::mapped_file file;
     boost::iostreams::mapped_file_params params;
 
-    if(file_exists(tiff_temp_file))
-        remove(tiff_temp_file);
-    params.path = tiff_temp_file;
+    if(file_exists(tiff_temp_file.toLocal8Bit().data()))
+        remove(tiff_temp_file.toLocal8Bit().data());
+    params.path = tiff_temp_file.toLocal8Bit().data();
 
     params.mode = (std::ios::out | std::ios::in);
     params.new_file_size =  maxPixels*sizeof(uint16);
@@ -449,7 +496,7 @@ void Reconstructor::setArray()
 }
 
 
-void Reconstructor::CreateGaussianKernel()
+void Reconstructor::CreateGaussianKernel(Kernel &krn)
 {
     float f;
     int index = 0;
@@ -477,7 +524,7 @@ void Reconstructor::CreateGaussianKernel()
             }
         }
     }
-    else
+    else    // kernel[2k+1][2k+1]
     {
         for(int i = -krn.k; i <= krn.k; ++i)
         {
@@ -500,7 +547,12 @@ void Reconstructor::CreateGaussianKernel()
 
 uint64_t Reconstructor::linearIndex(Coordinates c)
 {
-    return (uint64_t) c.get(0) + (uint64_t) (image_size[0])*( c.get(1) + (uint64_t) (image_size[1])*c.get(2));
+
+
+    uint64_t val = (uint64_t) c.get(0) +
+            (uint64_t) (image_size[0])*( c.get(1) + (uint64_t) (image_size[1])*c.get(2));
+    //qDebug() << "x: " << c.get(0) << " y: " << c.get(1) << " z: " << c.get(2) << " ind: " << val;
+    return val;
 }
 void Reconstructor::setMinMax(sdmixer::min_max m)
 {
@@ -568,6 +620,7 @@ void Reconstructor::getSettingsFromGUI()
 
     if(oneConvolutionKernel)
     {
+        Kernel krn;
         globalKernel = sdm->getGlobalKernel();
         if(!globalKernel.unitFWHM_xy.compare("px"))
         {
@@ -589,42 +642,42 @@ void Reconstructor::getSettingsFromGUI()
             krn.make3D=false;
             krn.data = new float[krn.size*krn.size];
         }
-        CreateGaussianKernel();
-        qDebug() << "krn.sigma_xy " << krn.sigma_xy ;
+        CreateGaussianKernel(krn);
+        all_kernels.push_back(krn);
+
+        qDebug() << "One kernel, krn.sigma_xy " << krn.sigma_xy ;
     }
     else
     {
         vecKernel = sdm->getConvolutionKernel();
-        //if(getKernelVector)
-        /*{
-            vecKernel = sdm->getConvolutionKernel();
-            if(!vecKernel.empty())
+        for(auto i : vecKernel)
+        {
+            Kernel krn;
+            sdmixer::gaussian_kernel gk = i;
+            if(!gk.unitFWHM_xy.compare("px"))
             {
-                sdmixer::gaussian_kernel gk = vecKernel[current_filter];
-                if(!gk.unitFWHM_xy.compare("px"))
-                {
-                    krn.sigma_xy=gk.FWHM_xy*NM_PER_PX / 2.355;
-                    krn.sigma_z=gk.FWHM_z*NM_PER_PX / 2.355;
-                }
-                else
-                {
-                    krn.sigma_xy=gk.FWHM_xy / 2.355;
-                    krn.sigma_z=gk.FWHM_z / 2.355;
-
-                }
-                if(dimensions==3 && !force2D)
-                {
-                    krn.make3D=true;
-                    krn.data = new float[krn.size*krn.size*krn.size];
-                }
-                else
-                {
-                    krn.make3D=false;
-                    krn.data = new float[krn.size*krn.size];
-                }
-                CreateGaussianKernel();
+                krn.sigma_xy=gk.FWHM_xy*NM_PER_PX / 2.355;
+                krn.sigma_z=gk.FWHM_z*NM_PER_PX / 2.355;
             }
-        }*/
+            else
+            {
+                krn.sigma_xy=gk.FWHM_xy / 2.355;
+                krn.sigma_z=gk.FWHM_z / 2.355;
+            }
+            if(dimensions==3 && !force2D)
+            {
+                krn.make3D=true;
+                krn.data = new float[krn.size*krn.size*krn.size];
+            }
+            else
+            {
+                krn.make3D=false;
+                krn.data = new float[krn.size*krn.size];
+            }
+            CreateGaussianKernel(krn);
+            all_kernels.push_back(krn);
+            qDebug() << "krn.sigma_xy " << krn.sigma_xy ;
+        }
     }
 
     qDebug()<< "reconstructor init ready";
@@ -645,6 +698,7 @@ void Reconstructor::doWorkNow()
 
     sdm->getHeader(line, columns, min_maxValues, INPUT_FILE);
     dimensions = columns.dimensions;
+    setMinMax(min_maxValues);
 
     if( INPUT_FILE != sdmixer::XYZ_FILE )
     {
@@ -757,11 +811,28 @@ Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
     qDebug() << "Reconstructor loading file " << xyz_file;
     this->sdm=s;
     xyz_file_parameter=xyz_file;
+    tiff_temp_file = sdm->getTiffTempFile();
+    convolved_image = sdm->getConvImgTempFile();
+
+
+    qDebug() << "tiff_temp_file: " << tiff_temp_file;
+    qDebug() << "convolved_image: " << convolved_image;
+    /*QFile f(xyz_file);
+    f.open(QIODevice::ReadOnly| QIODevice::Text);
+
+    QTextStream in(&f);
+    QString line = in.readLine();
+
+    sdm->getHeader(line, columns, min_maxValues, INPUT_FILE);
+    dimensions = columns.dimensions;
+    f.close();*/
+    getSettingsFromGUI();
     doWorkLater=true;
 
 }
 void Reconstructor::initData(int current_filter)
 {
+
     setMinMax(min_maxValues);
 
     int limage_min[3]={0};
@@ -832,8 +903,17 @@ Reconstructor::Reconstructor(sdmixer *s,
                              int current_filter)
 {
     //if(current_filter == 0)
+    curr_filter = current_filter;
+    qDebug() << "Reconstruction Constructor, curr_filter: " << curr_filter;
 
     this->sdm = s;
+    tiff_temp_file = sdm->getTiffTempFile();
+    convolved_image = sdm->getConvImgTempFile();
+
+    //tiff_temp_file = tf.toLocal8Bit().data();
+    //convolved_image = cv.toLocal8Bit().data();
+    qDebug() << "tiff_temp_file: " << tiff_temp_file;
+    qDebug() << "convolved_image: " << convolved_image;
 
     input_data = data;
     input_file = sdm->getCurrentFile();
@@ -895,9 +975,9 @@ void Reconstructor::outputTIFF()
     boost::iostreams::mapped_file_sink file;
     boost::iostreams::mapped_file_params params;
     if(runConvolution)
-        params.path = convolved_image;
+        params.path = convolved_image.toLocal8Bit().data();
     else
-        params.path = tiff_temp_file;
+        params.path = tiff_temp_file.toLocal8Bit().data();
 
     file.open(params);
 

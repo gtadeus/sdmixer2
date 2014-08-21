@@ -7,6 +7,18 @@ void PairFinder::doWork() {
     qDebug()<<"started file loading in new thread";
 
     loadInputFile();
+    std::stringstream ss1, ss2;
+    ss1 << "Offset (nm): ";
+    ss2 << "Offset (px): ";
+
+    for (int i = 0; i < dimensions; ++i)
+    {
+        ss1 << Offset[i] << " ";
+        ss2 << Offset[i]/NM_PER_PX << " ";
+    }
+    sdm->writeToLogFile(QString::fromStdString(ss1.str()));
+    sdm->writeToLogFile(QString::fromStdString(ss2.str()));
+
     if(canceled)
     {
         sdm->setStartDemixingButtonEnabled(true);
@@ -231,10 +243,10 @@ void PairFinder::loadInputFile()
         }
     }
 
-    //qDebug() << "total: " << input.size() ;
+    qDebug() << "total: " << input.size() ;
     rawDataRows=input.size()/rawDataCols;
-    //qDebug() <<  "rows : " << rawDataRows ;
-    //qDebug() <<  "firstelement: " << input[0] <<"  last element: " << input[input.size()-1] ;
+    qDebug() <<  "rows : " << rawDataRows ;
+    qDebug() <<  "firstelement: " << input[0] <<"  last element: " << input[input.size()-1] ;
 
 }
 
@@ -242,7 +254,29 @@ PairFinder::PairFinder(sdmixer *s, QString f)
 {
     sdm = s;
     file = f;
-    getHeader();
+
+    QFile qfile(f);
+    qfile.open(QIODevice::ReadOnly| QIODevice::Text);
+
+    QTextStream in(&qfile);
+    QString header = in.readLine();
+    qfile.close();
+
+    sdm->getHeader(header, columns, min_maxValues, INPUT_FILE);
+    dimensions = columns.dimensions;
+    rawDataCols = columns.rawDataCols;
+
+    if(sdm->getForce2D())
+        dimensions=2;
+
+    xCol = columns.x;
+    yCol = columns.y;
+    if(dimensions>2)
+        zCol = columns.z;
+    FrameColumn = columns.frame;
+    IntensityColumn = columns.Amplitude;
+
+    //getHeader();
     //qDebug() << "dimensions: " << dimensions;
     //qDebug() << "columns: " << rawDataCols;
 

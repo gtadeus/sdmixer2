@@ -24,9 +24,7 @@ class Reconstructor : public QObject
     Q_OBJECT
 public:
 
-    void Convolution2();
-    void CreateGaussianKernel();
-    void setKernel();
+
 
     struct Coordinates
     {
@@ -72,13 +70,19 @@ public:
         int index;
     };
 
+    void Convolution(Kernel krn);
+    void CreateGaussianKernel(Kernel &krn);
+    void setKernel();
+
     Reconstructor(sdmixer *s,
                   std::vector<sdmixer::Localization> *data,
                   int current_filter);
     Reconstructor(sdmixer *s, QString xyz_file);
     void run();
     void createKernel();
-    bool file_exists(char *filename);
+    bool file_exists(const char *filename);
+
+    std::vector<Kernel> all_kernels;
 
     void hist_correct();
     void getIndexFromXYZ();
@@ -112,7 +116,7 @@ public slots:
 private:
 
     sdmixer *sdm;
-    Kernel krn;
+    //Kernel krn;
 
     QString xyz_file_parameter;
 
@@ -160,11 +164,11 @@ private:
     uint64_t maxPixels=1; // product for each i:dim   (image_size[i]+1)
 
 
-    char *tiff_temp_file = "tiff_uint8.tmp";
+    QString tiff_temp_file; // = "tiff_uint8.tmp";
     //char *tiff_uint8_file ="tiff_uint8.tmp";
-    char *fft_src_file = "fft_src.tmp";
-    char *fft_krnl_file = "fft_kernel.tmp";
-    char *convolved_image = "conv_img.tmp";
+    //char *fft_src_file = "fft_src.tmp";
+    //char *fft_krnl_file = "fft_kernel.tmp";
+    QString convolved_image; //= "conv_img.tmp";
 
 
     int dbl_image_min=0;
@@ -184,6 +188,9 @@ private:
     bool xyzFile = false;
 
     bool doWorkLater=false;
+
+    bool ReslizeZ=false;
+    int startResliceZ, endResliceZ;
 
 
 

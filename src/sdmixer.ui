@@ -592,7 +592,7 @@
         <x>450</x>
         <y>10</y>
         <width>241</width>
-        <height>301</height>
+        <height>151</height>
        </rect>
       </property>
       <property name="title">
@@ -724,6 +724,62 @@
         </item>
         <item row="0" column="1">
          <widget class="QLineEdit" name="lineEdit_pixelSizeNM"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_10">
+      <property name="geometry">
+       <rect>
+        <x>450</x>
+        <y>170</y>
+        <width>241</width>
+        <height>141</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Group Localizations</string>
+      </property>
+      <widget class="QWidget" name="layoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>21</y>
+         <width>201</width>
+         <height>46</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBox_enableGrouping">
+          <property name="text">
+           <string>Enable Grouping</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_19">
+          <property name="text">
+           <string>Radius</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lineEdit_radiusGrouping"/>
+        </item>
+        <item row="1" column="2">
+         <widget class="QComboBox" name="comboBox_groupingUnits">
+          <item>
+           <property name="text">
+            <string>px</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>nm</string>
+           </property>
+          </item>
+         </widget>
         </item>
        </layout>
       </widget>
@@ -874,9 +930,6 @@
         <string>Filter Files must be </string>
        </property>
       </widget>
-      <zorder>layoutWidget</zorder>
-      <zorder>label_FilterFileInstruction</zorder>
-      <zorder>checkBox</zorder>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_4">
@@ -889,11 +942,11 @@
         <x>440</x>
         <y>10</y>
         <width>221</width>
-        <height>301</height>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
-       <string>Reduce Image Output size</string>
+       <string>Reduce Image Output Size</string>
       </property>
       <layout class="QFormLayout" name="formLayout">
        <item row="0" column="0">
@@ -1167,6 +1220,32 @@
         </layout>
        </item>
       </layout>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_11">
+      <property name="geometry">
+       <rect>
+        <x>440</x>
+        <y>160</y>
+        <width>221</width>
+        <height>151</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Nearest-Neighbor</string>
+      </property>
+      <widget class="QCheckBox" name="checkBox_calculateNN">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>201</width>
+         <height>18</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Calculate Nearest-Neighbor Statistic</string>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_5">

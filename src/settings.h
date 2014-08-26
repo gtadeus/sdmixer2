@@ -70,6 +70,9 @@ public:
     QString getCameraOrientation(){return CameraOrientation;}
     QString getShortChannelPosition(){return ShortChannelPosition;}
     sdmixer::fishing getFishing(){return fishing;}
+    bool getRunGrouping() { return runGrouping; }
+    double getGroupingRadius() { return groupingRadius; }
+    QString getGroupingUnits() { return groupingUnits; }
 
     std::vector<QString> getFilterFiles() {return FilterFiles;}
     int getMaxIntLong(){return maxIntensityLong;}
@@ -93,6 +96,8 @@ public:
     int getStartSliceZ(){return startRescliceZ;}
     int getEndSliceZ() { return endRescliceZ;}
 
+    bool getNNStatistic() { return performNNStatistic; }
+
 
 private:
     static const int max_dims = 3;
@@ -112,7 +117,11 @@ private:
     QString ShortChannelPosition;
     sdmixer::offset_units offsetUnits;
 
-    // FIlter
+    bool runGrouping;
+    double groupingRadius;
+    QString groupingUnits;
+
+    // Filter
     std::vector<QString> FilterFiles;
     int maxIntensityLong=0;
     int maxIntensityShort=0;
@@ -137,6 +146,7 @@ private:
     int startRescliceZ;
     int endRescliceZ;
 
+    bool performNNStatistic;
 
 
     QDomDocument settingsFile;

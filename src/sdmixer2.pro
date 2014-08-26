@@ -29,7 +29,8 @@ SOURCES += main.cpp\
     filter.cpp \
     reconstructor.cpp \
     settings.cpp \
-    mapped_file.cpp
+    mapped_file.cpp \
+    kdtree.cpp
 
 
 
@@ -38,6 +39,9 @@ HEADERS  += sdmixer.h \
     filter.h \
     reconstructor.h \
     settings.h \
+    kdtree.h \
+    pointbox.h \
+    nr3.h
 
 
 FORMS    += sdmixer.ui

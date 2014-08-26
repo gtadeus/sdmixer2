@@ -2,6 +2,131 @@
 //#include "reconstructor.h"
 #include "sdmixer.h"
 
+void PairFinder::startGrouping()
+{
+    qDebug() << "starting grouping";
+    qDebug() << "radius: " << groupingRadius;
+
+    sdm->clearLocalizations();
+    std::vector< std::vector<int> > local_nodes;
+    std::vector<sdmixer::Localization> centered;
+    //std::vector< std::vector<double> > centers;
+    int j = 0;
+    std::vector<int> active_old;
+    std::vector<int> active_new;
+    bool found = false;
+    std::vector<sdmixer::Localization>::iterator it;
+
+    int i=0;
+    for ( it = grouping_input.begin(); it < grouping_input.end(); ++it)
+    {
+        sdmixer::Localization loc = *it;
+        std::vector<sdmixer::Localization>::iterator prev_it;
+        prev_it = it;
+        --prev_it;
+        sdmixer::Localization prev_loc = *prev_it;
+        if ( it == grouping_input.begin() || loc.frame != prev_loc.frame )
+        {
+            active_old = active_new;
+            active_new.clear();
+        }
+        found = false;
+        for_each(active_old.begin(), active_old.end(), [&](int k)
+        {
+            if(found == false)
+            {
+                double nodes_weightShort;
+                double nodes_weightLong;
+                double *dxShort = new double[dimensions];
+                double *dxLong = new double[dimensions];
+                //double dx[dimensions];
+                double EllipsoidSumShort=0;
+                double EllipsoidSumLong=0;
+
+                for (int d = 0; d < dimensions; ++d)
+                {
+                    //dx[d] = centers[k][d]-pData[i+d*rows];
+                    dxShort[d] = centered[k].getShortDim(d);
+                    dxLong[d] = centered[k].getLongDim(d);
+                }
+
+                for (int d = 0; d < dimensions; ++d)
+                {
+                    EllipsoidSumShort += (dxShort[d]/groupingRadius)*(dxShort[d]/groupingRadius);
+                    EllipsoidSumLong += (dxLong[d]/groupingRadius)*(dxLong[d]/groupingRadius);
+                }
+
+                if (EllipsoidSumShort < 1 && grouping_input[local_nodes[k][local_nodes[k].size()-1]].frame
+                        - loc.frame<= 1)
+                {
+                    double *tempShort = new double[dimensions];
+                    double *tempLong = new double[dimensions];
+                    nodes_weightShort = 0;
+                    nodes_weightLong = 0;
+
+                    for_each(local_nodes[k].begin(), local_nodes[k].end(), [&](int nodeIdx)
+                    {
+                        nodes_weightShort += grouping_input[nodeIdx].ShortIntensity;
+                        nodes_weightLong += grouping_input[nodeIdx].LongIntensity;
+                    });
+                    for (int d = 0; d < dimensions; ++d)
+                    {
+                        tempShort[d]=nodes_weightShort*centered[k].getShortDim(d);
+                        tempShort[d]+= (loc.ShortIntensity * loc.getShortDim(d));
+                        tempShort[d]/=(nodes_weightShort + loc.ShortIntensity);
+                        centered[k].setShortDim(d, tempShort[d]);
+
+                        tempLong[d]=nodes_weightLong*centered[k].getLongDim(d);
+                        tempLong[d]+= (loc.LongIntensity * loc.getLongDim(d));
+                        tempLong[d]/=(nodes_weightShort + loc.LongIntensity);
+                        centered[k].setLongDim(d, tempLong[d]);
+                    }
+                    local_nodes[k].push_back(i);
+                    active_new.push_back(k);
+                    found = true;
+                }
+            }
+        });
+        if(found == false)
+        {
+            std::vector<int> tmp;
+            tmp.push_back(i);
+            local_nodes.push_back(tmp);
+            active_new.push_back(j);
+
+            centered.push_back(loc);
+            sdm->pushBackLocalization(loc);
+            j++;
+        }
+        ++i;
+    }
+    QFile group_out(groupoutFile);
+    QTextStream out(&group_out);
+    group_out.open(QIODevice::WriteOnly | QIODevice::Text);
+    writeHeader(out);
+
+    //std::vector<sdmixer::Localization>::iterator it;
+    for ( it = centered.begin(); it < centered.end(); ++it)
+    {
+        sdmixer::Localization loc = *it;
+        for (int i = 0; i < dimensions; ++i)
+            out << loc.getShortDim(i) << " ";
+        out << loc.ShortIntensity << " ";
+        out << loc.frame << " ";
+        for (int i = 0; i < dimensions; ++i)
+            out << loc.getLongDim(i) << " ";
+        out << loc.LongIntensity << "\n";
+
+    }
+    group_out.close();
+
+
+    qDebug() << "finished grouping";
+
+
+
+}
+
 void PairFinder::doWork() {
 
     qDebug()<<"started file loading in new thread";
@@ -95,8 +220,17 @@ void PairFinder::doWork() {
 
     qDebug() << "found " << numpairs << " pairs";
 
+
+
     std::ostringstream os; os << "found " << numpairs << " pairs." ;
     sdm->writeToLogFile(QString::fromStdString(os.str()));
+
+    if(runGrouping)
+    {
+        qDebug() << "starting grouping";
+        sdm->writeToLogFile("starting Grouping");
+        startGrouping();
+    }
 
     sdm->setPF_min_maxValues(min_maxValues);
 
@@ -338,7 +472,20 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     outputFile.append(PairFinderSuffix);
     qDebug() << output_dir;
 
+    runGrouping = sdm->getRunGrouping();
+    groupingRadius = sdm->getGroupingRadius();
+    groupingUnits = sdm->getGroupingUnits();
+    if( !groupingUnits.compare("px") )
+    {
+        groupingRadius*=NM_PER_PX;
+    }
+    groupoutFile = output_dir;
+    groupoutFile.append("/");
+    groupoutFile.append(fileName);
+    groupoutFile.append(GroupedFileSuffix);
+    qDebug() << "group_out file: " << groupoutFile;
 }
+
 void PairFinder::getHeader(QString header_file)
 {
     if(header_file.isEmpty())
@@ -485,6 +632,8 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 if(!fishing)
                 {
                     sdm->pushBackLocalization(loc);
+                    if(runGrouping)
+                        grouping_input.push_back(loc);
 
                     for(int ii = 0; ii < dimensions; ++ii)
                     {

@@ -31,6 +31,8 @@ sdmixer::sdmixer(QWidget *parent) :
     conv_image_temp_file.append("/conv_img.tmp");
     qDebug() << conv_image_temp_file;
 
+    DEFAULT_SETTINGS = QDir::homePath();
+    DEFAULT_SETTINGS.append("/sdmixer_default_settings.txt");
 
 
 
@@ -401,6 +403,10 @@ bool sdmixer::getSettingsFromUI()
     CameraOrientation = ui->comboBox_CameraOrientation->currentText();
     ShortChannelPosition = ui->comboBox_ShortChannelPosition->currentText();
 
+    runGrouping = ui->checkBox_enableGrouping->isChecked();
+    groupingRadius = ui->lineEdit_radiusGrouping->text().toDouble();
+    groupingUnits = ui->comboBox_groupingUnits->currentText();
+
     // Filter
     FilterFiles.clear();
     for(int i = 0; i < ui->listWidget_FilterFiles->count(); ++i)
@@ -442,6 +448,8 @@ bool sdmixer::getSettingsFromUI()
     ResliceZ = ui->checkBox_scliceZ->isChecked();
     startRescliceZ = QString(ui->lineEdit_startSliceZ->text()).toInt();
     endRescliceZ = QString(ui->lineEdit_endSliceZ->text()).toInt();
+
+    performNNStatistic = ui->checkBox_calculateNN->isChecked();
 
 
     return true;
@@ -499,6 +507,10 @@ void sdmixer::setSettingsToUI(Settings s){
         ui->comboBox_ShortChannelPosition->setCurrentText(s.getShortChannelPosition());
     }
 
+    ui->checkBox_enableGrouping->setChecked(s.getRunGrouping());
+    ui->lineEdit_radiusGrouping->setText(QString::number(s.getGroupingRadius()));
+    ui->comboBox_groupingUnits->setCurrentText(s.getGroupingUnits());
+
     // Filter
     std::vector<QString> v = s.getFilterFiles();
     for( auto i : v)
@@ -541,6 +553,8 @@ void sdmixer::setSettingsToUI(Settings s){
     ui->checkBox_scliceZ->setChecked(s.getResliceZ());
     ui->lineEdit_startSliceZ->setText(QString::number(s.getStartSliceZ()));
     ui->lineEdit_endSliceZ->setText(QString::number(s.getEndSliceZ()));
+
+    ui->checkBox_calculateNN->setChecked(s.getNNStatistic());
 
 }
 
@@ -860,9 +874,16 @@ void sdmixer::on_startDemixing_clicked()
     QString logfile = output_directory;
     if(!output_directory.isEmpty())
         logfile.append("/");
+    else
+    {
+        QFile fi(InputFiles[0]);
+        QFileInfo qf(fi);
+        logfile.append(qf.absolutePath());
+        logfile.append("/");
+    }
     logfile.append(timestampLogFile());
     logfile.append("_sdmixer_log.txt");
-    qDebug() << logfile;
+    qDebug() << "logfile: " << logfile;
     logFile.open(logfile.toLocal8Bit(), std::ios::app);
     writeToLogFile("demixing started");
 

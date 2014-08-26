@@ -1,7 +1,9 @@
+//#include "sdmixer.h"
 #include "reconstructor.h"
-#include "sdmixer.h"
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/split.hpp>
+#include "kdtree.h"
+
+
+
 
 bool Reconstructor::file_exists (const char *filename)
 {
@@ -266,6 +268,82 @@ void Reconstructor::hist_eq()
     file.close();
     qDebug() << "end hist_eq";
 }
+void Reconstructor::findNN(QString outputFile)
+{
+    qDebug() << "starting Nearest-Neighbor Statistics";
+    sdm->writeToLogFile("calculating Nearest-Neighbor Statistics");
+    QFile NNout(outputFile);
+    NNout.open(QIODevice::WriteOnly | QIODevice::Text);
+    QTextStream out(&NNout);
+    //KDTree *kd = new KDTree(xyz_not_rounded, dimensions);
+
+
+    /*std::vector<dblCoordinates>::iterator it_NN;
+    for( it_NN = xyz_not_rounded.begin(); it_NN != xyz_not_rounded.end(); ++it_NN )
+    {
+        dblCoordinates coord = *it_NN;
+        Point<3> p;
+        for(int i = 0; i < dimensions; ++i)
+            p.x[i] = coord.get(i);
+        pts.push_back(p);
+
+    }*/
+    //NNout.close();
+    std::vector<double> results;
+
+    if(dimensions == 2 || force2D)
+    {
+        KDtree<2> kd(pts2D);
+        for (int i = 0; i < pts2D.size(); ++i)
+        {
+            Int nn[1];
+            Doub dn[1];
+            kd.nnearest(i, nn, dn, 1);
+            //qDebug() << "nn: " << nn[0] ;
+            //qDebug() << "dn: " << dn[0] ;
+            results.push_back((double)dn[0]);
+
+            out << (double)dn[0] << "\n";
+        }
+    }
+    else
+    {
+        KDtree<3> kd(pts3D);
+        for (int i = 0; i < pts3D.size(); ++i)
+        {
+            Int nn[1];
+            Doub dn[1];
+            kd.nnearest(i, nn, dn, 1);
+            //qDebug() << "nn: " << nn[0] ;
+            //qDebug() << "dn: " << dn[0] ;
+            results.push_back((double)dn[0]);
+
+            out << (double)dn[0] << "\n";
+        }
+    }
+
+    std::sort(results.begin(), results.end());
+    qDebug() << "min: " << results[0];
+    int size = results.size();
+    double median;
+    if (size  % 2 == 0)
+      {
+          median = (results[size / 2 - 1] + results[size / 2]) / 2;
+      }
+      else
+      {
+          median = results[size / 2];
+      }
+    qDebug() << "median: " << median;
+    qDebug() << "max: " << results[size-1];
+
+    std::stringstream ss;
+    ss << "min = " << results[0] << " (nm), median = " << median << " (nm), max = " << results[size-1] << " (nm)";
+
+    sdm->writeToLogFile(QString::fromStdString(ss.str()));
+    //sdm->writeToLogFile("finished Nearest-Neighbor Statistics");
+    qDebug() << "finished Nearest-Neighbor Statistics";
+}
 
 void Reconstructor::doWork()
 {
@@ -294,23 +372,36 @@ void Reconstructor::doWork()
             input_base_name.replace("_pairs_out", "");
         if(input_base_name.contains("_filter_out"))
             input_base_name.replace("_filter_out", "");
+        if(input_base_name.contains("grouped_out"))
+            input_base_name.replace("grouped_out", "");
 
         tiff_out_file = output_dir.append("/");
         tiff_out_file = tiff_out_file.append(input_base_name);
 
+        NN_output_file = tiff_out_file;
+        NN_output_file.append("_NN_Statistics");
+
         if(INPUT_FILE != sdmixer::XYZ_FILE)
         {
+            NN_output_file = NN_output_file.append("_ch");
+            NN_output_file = NN_output_file.append(QString::number(curr_filter));
+
             tiff_out_file = tiff_out_file.append("_ch");
             tiff_out_file = tiff_out_file.append(QString::number(curr_filter));
         }
 
         tiff_out_file.append(".tif");
+        NN_output_file.append(".txt");
 
-        qDebug() << "ouput_file: " << tiff_out_file;
-
+        qDebug() << "NN_output_file: " << NN_output_file;
+        qDebug() << "tiff_out_file: " << tiff_out_file;
         qDebug() << "curr_filter: " << curr_filter;
+
+        if (performNNStatistic)
+            findNN(NN_output_file);
         repeat=false;
         setArray();
+
         sdm->writeToLogFile("initialized image data");
         if(runConvolution)
         {
@@ -680,6 +771,8 @@ void Reconstructor::getSettingsFromGUI()
         }
     }
 
+    performNNStatistic = sdm->getPerformNNStatistic();
+
     qDebug()<< "reconstructor init ready";
 
 
@@ -846,6 +939,8 @@ void Reconstructor::initData(int current_filter)
     {
         sdmixer::Localization loc = *it;
         Coordinates c;
+        Point<2> point2D;
+        Point<3> point3D;
         if(loc.filter == current_filter)
         {
             for(int i = 0; i < dimensions; ++i)
@@ -857,6 +952,21 @@ void Reconstructor::initData(int current_filter)
                     limage_max[i]=short_val;
                 }
                 c.set(i, short_val);
+                //for NN Analysis
+                if(performNNStatistic)
+                {
+                    if(dimensions == 2 || force2D)
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point2D.x[i] = loc.getShortDim(i);
+                    }
+                    else
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point3D.x[i] = loc.getShortDim(i);
+                    }
+                }
+
                 if(limage_min[i]>short_val)
                         limage_min[i]=short_val;
                 if(limage_max[i]<short_val)
@@ -865,6 +975,13 @@ void Reconstructor::initData(int current_filter)
                 ++index;
             }
             xyz.push_back(c);
+            if(performNNStatistic)
+            {
+                if(dimensions == 2 || force2D)
+                    pts2D.push_back(point2D);
+                else
+                    pts3D.push_back(point3D);
+            }
             for(int i = 0; i < dimensions; ++i)
             {
                 int long_val = round(loc.getLongDim(i)/binning[i]);
@@ -874,8 +991,30 @@ void Reconstructor::initData(int current_filter)
                     limage_max[i]=long_val;
 
                 c.set(i, long_val);
+                //for NN Analysis
+                if(performNNStatistic)
+                {
+                    if(dimensions == 2 || force2D)
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point2D.x[i] = loc.getLongDim(i);
+                    }
+                    else
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point3D.x[i] = loc.getLongDim(i);
+                    }
+                }
             }
             xyz.push_back(c);
+
+            if(performNNStatistic)
+            {
+                if(dimensions == 2 || force2D)
+                    pts2D.push_back(point2D);
+                else
+                    pts3D.push_back(point3D);
+            }
         }
     }
 
@@ -941,6 +1080,8 @@ Reconstructor::Reconstructor(sdmixer *s,
         input_base_name.replace("_pairs_out", "");
     if(input_base_name.contains("_filter_out"))
         input_base_name.replace("_filter_out", "");
+    if(input_base_name.contains("grouped_out"))
+        input_base_name.replace("grouped_out", "");
 
     tiff_out_file = output_dir.append("/");
     tiff_out_file = tiff_out_file.append(input_base_name);

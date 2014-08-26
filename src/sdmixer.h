@@ -1,7 +1,8 @@
 #ifndef SDMIXER_H
 #define SDMIXER_H
 
-#define DEFAULT_SETTINGS "default_settings.txt"
+//#define DEFAULT_SETTINGS "default_settings.txt"
+
 #define SDMIXER_VERSION  2.01
 
 
@@ -235,10 +236,10 @@ public:
     };
 
     struct gaussian_kernel{
-        double FWHM_xy;
-        double FWHM_z;
-        QString unitFWHM_xy;
-        QString unitFWHM_z;
+        double FWHM_xy=0;
+        double FWHM_z=0;
+        QString unitFWHM_xy="nm";
+        QString unitFWHM_z="nm";
         QString filterName;
     };
 
@@ -289,6 +290,9 @@ public:
     offset_units getOffsetUnits(){return this->offsetUnits;}
     QString getCameraOrientation() { return this->CameraOrientation;}
     QString getShortChannelPosition() { return this->ShortChannelPosition;}
+    bool getRunGrouping() { return runGrouping; }
+    double getGroupingRadius() { return groupingRadius; }
+    QString getGroupingUnits() { return groupingUnits; }
 
     // Filter
     std::vector<QString> getFilterFiles(){return this->FilterFiles;}
@@ -314,6 +318,8 @@ public:
     int getStartRescliceZ(){ return startRescliceZ; }
     int getEndRescliceZ() { return endRescliceZ;}
 
+    bool getPerformNNStatistic() { return performNNStatistic; }
+
     QString getTiffTempFile(){ return tiff_temp_file; }
     QString getConvImgTempFile(){ return conv_image_temp_file; }
 
@@ -325,6 +331,12 @@ public:
     {
         pf_output->push_back(l);
     }
+    void clearLocalizations()
+    {
+        pf_output->clear();
+        //std::vector<Localization>()->swap(pf_output);
+    }
+
     // save min/max from header from pairfinder run for later
     void setPF_min_maxValues(min_max m){MinMaxValues=m;}
     min_max getPF_min_maxValues(){return MinMaxValues;}
@@ -400,6 +412,9 @@ private slots:
 
 
 private:
+
+    QString DEFAULT_SETTINGS;
+
     std::vector<gaussian_kernel> vec_kernel;
     std::vector<Localization> *pf_output;
 
@@ -423,6 +438,10 @@ private:
     QString ShortChannelPosition;
     offset_units offsetUnits;
 
+    bool runGrouping;
+    double groupingRadius;
+    QString groupingUnits;
+
     std::vector<QString> FilterFiles;
     int maxIntensityLong=0;
     int maxIntensityShort=0;
@@ -445,7 +464,7 @@ private:
     int startRescliceZ;
     int endRescliceZ;
 
-
+    bool performNNStatistic;
 
 
     Ui::sdmixer *ui;

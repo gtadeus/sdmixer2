@@ -36,6 +36,11 @@ Settings::Settings(sdmixer *s)
     ShortChannelPosition = s->getShortChannelPosition();
     offsetUnits = s->getOffsetUnits();
 
+    runGrouping = s->getRunGrouping();
+    groupingRadius = s->getGroupingRadius();
+    groupingUnits = s->getGroupingUnits();
+
+
     // Filter
     setFilterFiles(s->getFilterFiles());
     setMaxIntLong(s->getMaxIntLong());
@@ -60,6 +65,8 @@ Settings::Settings(sdmixer *s)
     ResliceZ = s->getResliceZ();
     startRescliceZ = s->getStartRescliceZ();
     endRescliceZ = s->getEndRescliceZ();
+
+    performNNStatistic = s->getPerformNNStatistic();
 
 }
 
@@ -143,6 +150,10 @@ void Settings::initXML(){
     appendChildNode(qdFishing, "range", fishing.range);
     appendChildNode(qdFishing, "subset", fishing.subset);
 
+    appendChildNode(pairfinder, "runGrouping", runGrouping);
+    appendChildNode(pairfinder, "groupingRadius", groupingRadius);
+    appendChildNode(pairfinder, "groupingUnits", groupingUnits);
+
 
     QDomElement filter = createField("FilterSettings");
     settings.appendChild(filter);
@@ -183,6 +194,8 @@ void Settings::initXML(){
     appendChildNode(reconstructor, "ResliceZ", ResliceZ);
     appendChildNode(reconstructor, "startRescliceZ", startRescliceZ);
     appendChildNode(reconstructor, "endRescliceZ", endRescliceZ);
+
+    appendChildNode(reconstructor, "NearestNeighborStatistic", performNNStatistic);
 
     std::vector<sdmixer::gaussian_kernel>::iterator it;
     for( it = vec_kernel.begin(); it != vec_kernel.end(); ++it)
@@ -363,6 +376,18 @@ void Settings::loadFromFile(QString file){
                             }
                         }
                     }
+                    if (f.attribute("name") == "runGrouping")
+                    {
+                        runGrouping = f.attribute("number").toInt();
+                    }
+                    if (f.attribute("name") == "groupingRadius")
+                    {
+                        groupingRadius = f.attribute("number").toDouble();
+                    }
+                    if (f.attribute("name") == "groupingUnits")
+                    {
+                        groupingUnits = f.attribute("string");
+                    }
                 }
             }
             if( e.attribute("name") == "FilterSettings")
@@ -501,6 +526,10 @@ void Settings::loadFromFile(QString file){
                             }
                         }
                         vec_kernel.push_back(gk);
+                    }
+                    if (f.attribute("name") == "NearestNeighborStatistic")
+                    {
+                        performNNStatistic = f.attribute("number").toInt();
                     }
                 }
             }

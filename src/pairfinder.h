@@ -50,6 +50,8 @@ public:
     void saveFile();
     void writeHeader(QTextStream &out, bool AppendHeader=false);
 
+    void startGrouping();
+
 
 signals:
     void finished();
@@ -97,9 +99,12 @@ private:
     //internal Variables
     std::vector<fishing_run> fishing_results;
 
+    std::vector<sdmixer::Localization> grouping_input;
+
     sdmixer *sdm;
-    QString file, fileName, outputFile;
+    QString file, fileName, outputFile, groupoutFile;
     QString PairFinderSuffix = "_pairs_out.txt";
+    QString GroupedFileSuffix = "_grouped_out.txt";
     QString output_dir;
 
     std::vector<double> input;
@@ -138,11 +143,9 @@ private:
     int rawDataCols = 0;
     int rawDataRows = 0;
 
-
-
-
-
-
+    bool runGrouping;
+    double groupingRadius;
+    QString groupingUnits;
 
 
 };

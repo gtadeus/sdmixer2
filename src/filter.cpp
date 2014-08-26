@@ -43,6 +43,8 @@ void Filter::init()
         fileName.replace("_pairs_out", "");
     if(fileName.contains("_filter_out"))
         fileName.replace("_filter_out", "");
+    if(fileName.contains("grouped_out"))
+        fileName.replace("grouped_out", "");
 
     outputFile = output_dir;
     outputFile.append("/");

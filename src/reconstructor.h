@@ -3,9 +3,12 @@
 
 #include "sdmixer.h"
 
+
 #include <tiffio.h>
 #include <boost/iostreams/device/mapped_file.hpp>
-#include <fftw3.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
+//#include <fftw3.h>
 
 
 #include <QThread>
@@ -17,14 +20,15 @@
 #include <QtXml/QtXml>
 #include <QtXml/QDomDocument>
 
+#include "nr3.h"
+#include "pointbox.h"
+
 
 
 class Reconstructor : public QObject
 {
     Q_OBJECT
 public:
-
-
 
     struct Coordinates
     {
@@ -105,6 +109,7 @@ public:
     void doWorkNow();
 
     void hist_eq();
+    void findNN(QString outputFile);
 
 signals:
     void finished();
@@ -125,6 +130,9 @@ private:
     sdmixer::gaussian_kernel globalKernel;
     std::vector<sdmixer::gaussian_kernel> vecKernel;
     std::vector<Coordinates> xyz;
+    vector< Point<3> > pts3D;
+    vector< Point<2> > pts2D;
+    //std::vector<dblCoordinates> xyz_not_rounded;
     std::vector<sdmixer::Localization> *input_data;
 
     sdmixer::min_max min_maxValues;
@@ -171,6 +179,7 @@ private:
     QString convolved_image; //= "conv_img.tmp";
 
 
+
     int dbl_image_min=0;
     int dbl_image_max=0;
 
@@ -179,6 +188,7 @@ private:
     QString input_base_name;
     QString input_file;
     QString output_dir;
+    QString NN_output_file;
 
     int curr_filter=1;
     bool minMaxDefined=false;
@@ -191,6 +201,7 @@ private:
 
     bool ReslizeZ=false;
     int startResliceZ, endResliceZ;
+    bool performNNStatistic;
 
 
 

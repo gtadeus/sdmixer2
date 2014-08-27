@@ -12,6 +12,7 @@ Filter::Filter(sdmixer *s, std::vector<sdmixer::Localization> *data)
     {
         input.push_back(i);
     }*/
+
     input=data;
     init();
 
@@ -38,13 +39,13 @@ void Filter::init()
     else
         output_dir=fi.path();
 
-    fileName = fi.baseName();
+    fileName = fi.completeBaseName();
     if(fileName.contains("_pairs_out"))
         fileName.replace("_pairs_out", "");
     if(fileName.contains("_filter_out"))
         fileName.replace("_filter_out", "");
-    if(fileName.contains("grouped_out"))
-        fileName.replace("grouped_out", "");
+    if(fileName.contains("_grouped_out"))
+        fileName.replace("_grouped_out", "");
 
     outputFile = output_dir;
     outputFile.append("/");
@@ -119,6 +120,7 @@ void Filter::loadFile(QString str)
     //qDebug() << "index_g " << index_g;
     //qDebug() << "v.size() " << v_size;
     input = sdm->getPfOutput();
+
     qDebug() << "loaded ";
 
 
@@ -129,6 +131,7 @@ Filter::Filter(sdmixer *s, QString str)
     qDebug() << "inititalizing Filter: " << str;
     this->sdm = s;
     force2D = sdm->getForce2D();
+    sdm->clearLocalizations();
     init();
     doWorkLaterParameter = str;
     doWorkLater=true;
@@ -196,25 +199,19 @@ void Filter::doWork()
     QImage IntSpaceOut(IntSpace_width, IntSpace_height, QImage::Format_RGB32);
     IntSpaceOut.fill(Qt::white);
 
-
-
-
-
-
-    std::vector<int> pairs_in_channel;
-
-    int index = 0;
-    int sum_channel_0=0;
-
     std::vector<QString>::iterator ff;
+
     for ( ff = FilterInputFiles.begin(); ff < FilterInputFiles.end(); ++ff)
     {
+        //sumChannels[current_filter-1]=0;
+
         QString i = *ff;
         QImage img(i);
 
         qDebug() << "filter file " << i;
+        qDebug() << "current_filter: " << current_filter;
 
-        int sum = 0;
+        //int sum = 0;
 
         std::vector<sdmixer::Localization>::iterator it;
         qDebug() << "maxIntLong " << maxIntLong;
@@ -224,7 +221,7 @@ void Filter::doWork()
         {
             sdmixer::Localization loc = *it;
 
-            if(index == 0)
+            if(it == input->begin())
             {
                 maxIntLongFromFile = loc.LongIntensity;
                 maxIntShortFromFile = loc.ShortIntensity;
@@ -288,21 +285,44 @@ void Filter::doWork()
                 }
             }
             if (clrPixel.black() == 0)
-                it->filter= current_filter;
-            if(it->filter == 0)
+                it->filter = current_filter;
+            /*if(it->filter == 0)
                 sum_channel_0++;
-            else
+            if(it->filter == current_filter && it->filter != 0)
+            {
+                sumChannels[current_filter-1]++;
                 sum++;
+            }
 
-            ++index;
+            ++index;*/
         }
-        pairs_in_channel.push_back(sum);
+       // pairs_in_channel.push_back(sum);
         ++current_filter;
     }
     qDebug() << "maxIntLongFromFile " << maxIntLongFromFile;
     qDebug() << "maxIntShortFromFile " << maxIntShortFromFile;
 
+    int total_localizations=0;
+    int sum_channel_0=0;
+    int *sumChannels = new int[FilterInputFiles.size()];
+    for (int i = 0; i < FilterInputFiles.size(); ++i)
+        sumChannels[i] = 0;
+
     std::vector<sdmixer::Localization>::iterator it;
+    for( it = input->begin(); it != input->end(); ++it )
+    {
+        sdmixer::Localization loc = *it;
+        if(loc.filter!=0)
+        {
+            sumChannels[loc.filter-1]++;
+        }
+        else
+            sum_channel_0++;
+        total_localizations++;
+    }
+    qDebug() << "total_localizations: " << total_localizations;
+
+    //std::vector<sdmixer::Localization>::iterator it;
 
     QString channel_results = "";
 
@@ -310,21 +330,25 @@ void Filter::doWork()
     for ( auto i : FilterInputFiles)
     {
         channel_results="found ";
-        channel_results.append(QString::number(pairs_in_channel[ii]));
+        //channel_results.append(QString::number(pairs_in_channel[ii]));
+        channel_results.append(QString::number(sumChannels[ii]));
         channel_results.append(" (");
-        channel_results.append(QString::number(100*pairs_in_channel[ii]/index));
+        //channel_results.append(QString::number(100*pairs_in_channel[ii]/index));
+        channel_results.append(QString::number(100*sumChannels[ii]/total_localizations));
         channel_results.append(" %) pairs in channel ");
         channel_results.append(QString::number(ii+1));
         sdm->writeToLogFile(channel_results);
+        qDebug() << channel_results;
         ii++;
     }
 
     channel_results = "";
     channel_results.append(QString::number(sum_channel_0));
     channel_results.append(" (");
-    channel_results.append(QString::number(100*sum_channel_0/index));
+    channel_results.append(QString::number(100*sum_channel_0/total_localizations));
     channel_results.append(" %) pairs crosstalk (channel=0)");
     sdm->writeToLogFile(channel_results);
+    qDebug() << channel_results;
 
 
     for( it = input->begin(); it != input->end(); ++it )
@@ -475,6 +499,7 @@ void Filter::doWork()
     qDebug() << "finished edge detection" ;
     IntSpaceOut.save(intensitySpaceFile);
 }
+
     qDebug() <<" finished filter";
     emit finished();
 }

@@ -19,7 +19,7 @@ bool Reconstructor::file_exists (const char *filename)
 
 void Reconstructor::Convolution(Kernel krn)
 {
-    qDebug() << " started convolution 2";
+    qDebug() << "started convolution";
     uint64_t img_sizeX = image_size[0];
     uint64_t img_sizeY = image_size[1];
     uint64_t img_sizeZ;
@@ -149,7 +149,7 @@ void Reconstructor::Convolution(Kernel krn)
             }
         }
     }
-
+    qDebug() << "convolution main loop ready";
     std::vector<ConvPixel>::iterator it;
     double max_sum = 0;
     for(it = conv_res_vec.begin(); it<conv_res_vec.end(); ++it)
@@ -367,7 +367,7 @@ void Reconstructor::doWork()
         else
             output_dir=fi.path();
 
-        input_base_name = fi.baseName();
+        input_base_name = fi.completeBaseName();
         if(input_base_name.contains("_pairs_out"))
             input_base_name.replace("_pairs_out", "");
         if(input_base_name.contains("_filter_out"))
@@ -381,7 +381,11 @@ void Reconstructor::doWork()
         NN_output_file = tiff_out_file;
         NN_output_file.append("_NN_Statistics");
 
-        if(INPUT_FILE != sdmixer::XYZ_FILE)
+        if(INPUT_FILE == sdmixer::XYZ_FILE && !sdm->getRunFilter())
+        {
+
+        }
+        else
         {
             NN_output_file = NN_output_file.append("_ch");
             NN_output_file = NN_output_file.append(QString::number(curr_filter));
@@ -887,7 +891,7 @@ void Reconstructor::doWorkNow()
         else
             output_dir=fi.path();
 
-        input_base_name = fi.baseName();
+        input_base_name = fi.completeBaseName();
 
         tiff_out_file = output_dir.append("/");
         tiff_out_file = tiff_out_file.append(input_base_name);
@@ -1075,7 +1079,7 @@ Reconstructor::Reconstructor(sdmixer *s,
     else
         output_dir=fi.path();
 
-    input_base_name = fi.baseName();
+    input_base_name = fi.completeBaseName();
     if(input_base_name.contains("_pairs_out"))
         input_base_name.replace("_pairs_out", "");
     if(input_base_name.contains("_filter_out"))

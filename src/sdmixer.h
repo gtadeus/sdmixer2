@@ -3,7 +3,7 @@
 
 //#define DEFAULT_SETTINGS "default_settings.txt"
 
-#define SDMIXER_VERSION  2.01
+#define SDMIXER_VERSION  2.03
 
 
 

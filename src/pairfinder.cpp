@@ -46,8 +46,8 @@ void PairFinder::startGrouping()
                 for (int d = 0; d < dimensions; ++d)
                 {
                     //dx[d] = centers[k][d]-pData[i+d*rows];
-                    dxShort[d] = centered[k].getShortDim(d);
-                    dxLong[d] = centered[k].getLongDim(d);
+                    dxShort[d] = centered[k].getShortDim(d)-loc.getShortDim(d);
+                    dxLong[d] = centered[k].getLongDim(d)-loc.getLongDim(d);
                 }
 
                 for (int d = 0; d < dimensions; ++d)
@@ -55,10 +55,13 @@ void PairFinder::startGrouping()
                     EllipsoidSumShort += (dxShort[d]/groupingRadius)*(dxShort[d]/groupingRadius);
                     EllipsoidSumLong += (dxLong[d]/groupingRadius)*(dxLong[d]/groupingRadius);
                 }
-
+                //qDebug() << "dxShort[0]: " << dxShort[0];
+                //qDebug() << "EllipsoidSumLong: " << EllipsoidSumLong;
                 if (EllipsoidSumShort < 1 && grouping_input[local_nodes[k][local_nodes[k].size()-1]].frame
                         - loc.frame<= 1)
                 {
+                    //qDebug() << "EllipsoidSumShort: " << EllipsoidSumShort;
+                    //qDebug() << "EllipsoidSumLong: " << EllipsoidSumLong;
                     double *tempShort = new double[dimensions];
                     double *tempLong = new double[dimensions];
                     nodes_weightShort = 0;
@@ -79,7 +82,8 @@ void PairFinder::startGrouping()
                         tempLong[d]=nodes_weightLong*centered[k].getLongDim(d);
                         tempLong[d]+= (loc.LongIntensity * loc.getLongDim(d));
                         tempLong[d]/=(nodes_weightShort + loc.LongIntensity);
-                        centered[k].setLongDim(d, tempLong[d]);
+
+                        //centered[k].setLongDim(d, tempLong[d]);
                     }
                     local_nodes[k].push_back(i);
                     active_new.push_back(k);
@@ -95,10 +99,34 @@ void PairFinder::startGrouping()
             active_new.push_back(j);
 
             centered.push_back(loc);
-            sdm->pushBackLocalization(loc);
+
             j++;
         }
         ++i;
+    }
+    for ( std::vector<  std::vector<int> >::size_type u = 0; u < local_nodes.size(); u++)
+    {
+        double Navg=0;
+        double Nsum_second = 0;
+        int tmp_groupSize=0;
+        for ( std::vector<int>::size_type v = 0; v < local_nodes[u].size(); v++)
+        {
+            Navg+=grouping_input[local_nodes[u][v]].ShortIntensity;
+                    //PairsOut(local_nodes[u][v], yColIntC);
+            Nsum_second += grouping_input[local_nodes[u][v]].LongIntensity;
+                    //PairsOut(local_nodes[u][v], xColIntC);
+            tmp_groupSize+=1;
+        }
+        centered[u].ShortIntensity = Navg;
+        centered[u].LongIntensity = Nsum_second;
+        sdm->pushBackLocalization(centered[u]);
+        /*vecIntLeft.push_back(Navg);
+        vecIntRight.push_back(Nsum_second);
+        groupSize.push_back(tmp_groupSize);
+        if(tmp_groupSize>1)
+            realGroupSize.push_back(tmp_groupSize);*/
+
+
     }
     QFile group_out(groupoutFile);
     QTextStream out(&group_out);
@@ -120,6 +148,12 @@ void PairFinder::startGrouping()
     }
     group_out.close();
 
+    qDebug() << "grouped " << grouping_input.size()-centered.size() << " coordinates";
+    qDebug() << "now there are " << centered.size() << " pairs";
+
+    std::stringstream ss;
+    ss << "grouped into " << centered.size() << " pairs";
+    sdm->writeToLogFile(QString::fromStdString(ss.str()));
 
     qDebug() << "finished grouping";
 
@@ -465,7 +499,7 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     else
         output_dir=fi.path();
 
-    fileName = fi.baseName();
+    fileName = fi.completeBaseName();
     outputFile = output_dir;
     outputFile.append("/");
     outputFile.append(fileName);
@@ -546,6 +580,7 @@ void PairFinder::getHeader(QString header_file)
 void PairFinder::FindPairs(bool fishing, int last_frame)
 {
 
+    std::vector<int> grouped_rows;
 
     QFile pairs_out(outputFile);
     QTextStream out(&pairs_out);
@@ -623,6 +658,7 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 if(dimensions>2)
                     loc.zShort=input[(curr_row+factorShort*increment)*rawDataCols+zCol];
                 loc.ShortIntensity=input[(curr_row+factorShort*increment)*rawDataCols+IntensityColumn];
+                loc.frame = input[curr_row*rawDataCols+FrameColumn];
                 loc.xLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+xCol];
                 loc.yLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+yCol];
                 if(dimensions>2)
@@ -676,19 +712,22 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
             increment = 1;
         }
     }
-    if(numpairs!=0)
+    if(numpairs!=0 && !fishing)
     {
         std::sort ( grouped_rows.begin(), grouped_rows.end() );
         multiple_counter = std::abs(std::distance(std::unique ( grouped_rows.begin(), grouped_rows.end()), grouped_rows.end()));
+        std::stringstream ss;
+        ss << "found " << multiple_counter << " multiple pairs.";
+
+        sdm->writeToLogFile(QString::fromStdString(ss.str()));
+        qDebug() << "found " << multiple_counter << " multiple pairs." ;
     }
     if(!fishing)
         pairs_out.close();
 
 
-
-
     //sdmixer::log(sdm, os.str());
-    //qDebug() << "found " << numpairs << " pairs." ;
+
 }
 
 

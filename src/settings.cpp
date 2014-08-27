@@ -89,7 +89,7 @@ void Settings::initXML(){
 
     QDomElement settings = settingsFile.createElement("ConfigFile");
     settings.setAttribute("name", "sdmixer");
-    settings.setAttribute("version", "2.01");
+    settings.setAttribute("version", SDMIXER_VERSION);
     settingsFile.appendChild(settings);
 
     if ( !InputFiles.empty() )

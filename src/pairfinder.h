@@ -136,7 +136,7 @@ private:
     QString header;
     int numpairs = 0;
 
-    std::vector<int> grouped_rows;
+
 
     int NrOfDifferentFrames = 0;
     int multiple_counter = 0;

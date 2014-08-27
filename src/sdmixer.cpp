@@ -24,6 +24,7 @@ sdmixer::sdmixer(QWidget *parent) :
     ui(new Ui::sdmixer)
 {
 
+    qDebug() << "sdmixer v." << SDMIXER_VERSION;
     tiff_temp_file = QDir::tempPath();
     tiff_temp_file.append("/tiff_uint16.tmp");
     qDebug() << tiff_temp_file;
@@ -897,7 +898,10 @@ void sdmixer::on_actionAbout_sdmixer_triggered()
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setTextFormat(Qt::RichText);
     msgBox.setDefaultButton(QMessageBox::Ok);
-    msgBox.setText("<p>sdmixer - Analysis of 2D/3D multicolor SD-dSTORM data</p><p>written by Georgi Tadeus at FMP Berlin,<br>Department for Molecular Pharmacology and Cell Biology</p>Feedback is highly appreciated! <a href='mailto:georgi.tadeus@gmail.com?Subject=sdmixer'>georgi.tadeus@gmail.com</a><p>Many thanks to J. Schmoranzer and A. Lampe!</p><p>If you find this tool useful, please cite:</p><p>Lampe, A., Haucke, V., Sigrist, S. J., Heilemann, M. and Schmoranzer, J. (2012), Multi-colour direct STORM with red emitting carbocyanines. Biology of the Cell, 104: 229–237</p>");
+    QString text = "<p>sdmixer v.";
+    text.append(QString::number(SDMIXER_VERSION));
+    text.append(" - Analysis of 2D/3D multicolor SD-dSTORM data</p><p>written by Georgi Tadeus at FMP Berlin,<br>Department for Molecular Pharmacology and Cell Biology</p>Feedback is highly appreciated! <a href='mailto:georgi.tadeus@gmail.com?Subject=sdmixer'>georgi.tadeus@gmail.com</a><p>Many thanks to J. Schmoranzer and A. Lampe!</p><p>If you find this tool useful, please cite:</p><p>Lampe, A., Haucke, V., Sigrist, S. J., Heilemann, M. and Schmoranzer, J. (2012), Multi-colour direct STORM with red emitting carbocyanines. Biology of the Cell, 104: 229–237</p>");
+    msgBox.setText(text);
     int ret = msgBox.exec();
 }
 
@@ -934,7 +938,7 @@ void sdmixer::on_actionLoad_Settings_triggered()
 
 void sdmixer::on_actionSave_Preferences_triggered()
 {
-    QString fileName = QFileDialog::getSaveFileName(this, "Save Settings", QString(), "All Files (*.*)");
+    QString fileName = QFileDialog::getSaveFileName(this, "Save Settings", QString(), tr("Settings Files (*.txt);;All Files (*.*)"));
     if(!fileName.isEmpty())
     {
         getSettingsFromUI();

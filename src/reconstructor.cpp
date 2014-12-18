@@ -272,6 +272,7 @@ void Reconstructor::findNN(QString outputFile)
 {
     qDebug() << "starting Nearest-Neighbor Statistics";
     sdm->writeToLogFile("calculating Nearest-Neighbor Statistics");
+    qDebug() << "dimensions:" << dimensions;
     QFile NNout(outputFile);
     NNout.open(QIODevice::WriteOnly | QIODevice::Text);
     QTextStream out(&NNout);
@@ -403,6 +404,7 @@ void Reconstructor::doWork()
 
         if (performNNStatistic)
             findNN(NN_output_file);
+
         repeat=false;
         setArray();
 
@@ -492,6 +494,7 @@ void Reconstructor::setArray()
     int counter=0;
     for( it = xyz.begin(); it != xyz.end(); ++it )
     {
+        //qDebug() << "hier";
         Coordinates c = *it;
         for(int i = 0; i < dimensions; ++i)
         {
@@ -512,6 +515,7 @@ void Reconstructor::setArray()
             {
                 if(it->get(i)>=image_size[i])
                 {
+                    //qDebug() << "deleted";
                     counter++;
                     xyz.erase(it);
                     --it;
@@ -794,7 +798,8 @@ void Reconstructor::doWorkNow()
     QString line = in.readLine();
 
     sdm->getHeader(line, columns, min_maxValues, INPUT_FILE);
-    dimensions = columns.dimensions;
+    if(!force2D)
+        dimensions = columns.dimensions;
     setMinMax(min_maxValues);
 
     if( INPUT_FILE != sdmixer::XYZ_FILE )
@@ -873,12 +878,36 @@ void Reconstructor::doWorkNow()
 
 
             Coordinates c;
+            Point<2> point2D;
+            Point<3> point3D;
             for(int i = 0; i < dimensions; ++i)
             {
                 int ind = columns.getXYZCol(i);
                 c.set(i, round(dbl_vec[ind]/binning[i]));
+
+                if(performNNStatistic)
+                {
+                    if(dimensions == 2 || force2D)
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point2D.x[i] = c.get(i);
+                    }
+                    else
+                    {
+                        for(int i = 0; i < dimensions; ++i)
+                            point3D.x[i] =  c.get(i);
+                    }
+                }
             }
             xyz.push_back(c);
+
+            if(performNNStatistic)
+            {
+                if(dimensions == 2 || force2D)
+                    pts2D.push_back(point2D);
+                else
+                    pts3D.push_back(point3D);
+            }
         }
         // get File Name
         input_file = sdm->getCurrentFile();
@@ -924,11 +953,13 @@ Reconstructor::Reconstructor(sdmixer *s, QString xyz_file)
     dimensions = columns.dimensions;
     f.close();*/
     getSettingsFromGUI();
+
     doWorkLater=true;
 
 }
 void Reconstructor::initData(int current_filter)
 {
+    qDebug() << "Rconstructor init Data";
 
     setMinMax(min_maxValues);
 

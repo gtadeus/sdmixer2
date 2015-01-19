@@ -811,7 +811,9 @@ void Reconstructor::doWorkNow()
             std::vector<std::string> v;
             std::vector<double> dbl_vec;
             std::string strLine = line.toStdString();
-
+            strLine.erase(strLine.begin(),
+                          std::find_if(strLine.begin(), strLine.end(),
+                                       std::bind1st(std::not_equal_to<char>(), ' ')));
             boost::split(v, strLine, boost::is_any_of("\t "));
 
             int index = 0;
@@ -820,6 +822,7 @@ void Reconstructor::doWorkNow()
                 index++;
                 dbl_vec.push_back(strtod(i.c_str(), NULL));
             }
+
             sdmixer::Localization loc;
             for(int i = 0; i < dimensions; ++i)
             {
@@ -865,7 +868,9 @@ void Reconstructor::doWorkNow()
             std::vector<std::string> v;
             std::vector<double> dbl_vec;
             std::string strLine = line.toStdString();
-
+            strLine.erase(strLine.begin(),
+                          std::find_if(strLine.begin(), strLine.end(),
+                                       std::bind1st(std::not_equal_to<char>(), ' ')));
             boost::split(v, strLine, boost::is_any_of("\t "));
 
             int index = 0;

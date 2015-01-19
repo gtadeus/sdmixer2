@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -492,7 +492,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Search Range (&quot;epsilon&quot;)</string>
+       <string>Search Range</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_2">
        <property name="geometry">
@@ -596,7 +596,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Auto Offset (&quot;fishing&quot;)</string>
+       <string>Offset Optimization</string>
       </property>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
@@ -628,7 +628,7 @@
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBox_runFishing">
           <property name="text">
-           <string>Enable Auto Offset</string>
+           <string>Enable Offset Optimization</string>
           </property>
          </widget>
         </item>
@@ -738,47 +738,58 @@
        </rect>
       </property>
       <property name="title">
-       <string>Group Localizations</string>
+       <string>Special</string>
       </property>
-      <widget class="QWidget" name="layoutWidget">
+      <widget class="QWidget" name="">
        <property name="geometry">
         <rect>
          <x>20</x>
          <y>21</y>
-         <width>201</width>
-         <height>46</height>
+         <width>209</width>
+         <height>72</height>
         </rect>
        </property>
-       <layout class="QGridLayout" name="gridLayout_6">
-        <item row="0" column="0" colspan="2">
-         <widget class="QCheckBox" name="checkBox_enableGrouping">
-          <property name="text">
-           <string>Enable Grouping</string>
-          </property>
-         </widget>
+       <layout class="QFormLayout" name="formLayout_6">
+        <item row="0" column="0">
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBox_enableGrouping">
+            <property name="text">
+             <string>Enable Grouping</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_19">
+            <property name="text">
+             <string>Radius</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEdit_radiusGrouping"/>
+          </item>
+          <item row="1" column="2">
+           <widget class="QComboBox" name="comboBox_groupingUnits">
+            <item>
+             <property name="text">
+              <string>px</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>nm</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item row="1" column="0">
-         <widget class="QLabel" name="label_19">
+         <widget class="QCheckBox" name="checkBox_enableUnpairedOut">
           <property name="text">
-           <string>Radius</string>
+           <string>Save Unpaired Localizations</string>
           </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="lineEdit_radiusGrouping"/>
-        </item>
-        <item row="1" column="2">
-         <widget class="QComboBox" name="comboBox_groupingUnits">
-          <item>
-           <property name="text">
-            <string>px</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>nm</string>
-           </property>
-          </item>
          </widget>
         </item>
        </layout>
@@ -1254,7 +1265,7 @@
      </attribute>
      <widget class="QTextEdit" name="textEdit">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="geometry">
        <rect>

@@ -87,6 +87,9 @@ void Filter::loadFile(QString str)
         std::vector<std::string> v;
         std::vector<double> dbl_vec;
         std::string strLine = line.toStdString();
+        strLine.erase(strLine.begin(),
+                      std::find_if(strLine.begin(), strLine.end(),
+                                   std::bind1st(std::not_equal_to<char>(), ' ')));
 
         boost::split(v, strLine, boost::is_any_of("\t "));
 

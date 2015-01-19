@@ -3,7 +3,7 @@
 
 //#define DEFAULT_SETTINGS "default_settings.txt"
 
-#define SDMIXER_VERSION  2.04
+#define SDMIXER_VERSION  2.06
 
 
 
@@ -23,6 +23,9 @@
 #include <fstream>
 #include <sstream>
 #include <fcntl.h>
+
+#include <QMessageBox>
+
 /*#include "pairfinder.h"
 #include "reconstructor.h"
 class Reconstructor;*/
@@ -294,6 +297,8 @@ public:
     double getGroupingRadius() { return groupingRadius; }
     QString getGroupingUnits() { return groupingUnits; }
 
+    bool getUnpairedOut() {return UnpairedOut; }
+
     // Filter
     std::vector<QString> getFilterFiles(){return this->FilterFiles;}
     double getMaxIntShort(){return this->maxIntensityShort;}
@@ -395,6 +400,7 @@ private slots:
     // this signal is triggered by Pairfinder/Filter/Reconstructor
     // when respective Thread has finished
     void threadReady();
+    void errorOccured(QString msg);
 
 
     void InputFileClicked(QListWidgetItem *item);
@@ -417,6 +423,8 @@ private:
 
     std::vector<gaussian_kernel> vec_kernel;
     std::vector<Localization> *pf_output;
+
+    bool quit = false;
 
     int current_dimensions=0;
     static const int max_dims = 3;
@@ -441,6 +449,8 @@ private:
     bool runGrouping;
     double groupingRadius;
     QString groupingUnits;
+
+    bool UnpairedOut;
 
     std::vector<QString> FilterFiles;
     int maxIntensityLong=0;

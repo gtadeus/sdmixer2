@@ -23,6 +23,35 @@ class PairFinder : public QObject
 {
     Q_OBJECT
 public:
+    struct UnpairedLocalization
+    {
+        double x;
+        double y;
+        double z=0;
+        int frame;
+        double intensity;
+
+        double get(int dim)
+        {
+            if (dim == 0)
+                return x;
+            if (dim == 1)
+                return y;
+            if (dim == 2)
+                return z;
+            return 0;
+        }
+        double set(int dim, double val)
+        {
+            if (dim == 0)
+                x=val;
+            if (dim == 1)
+                y=val;
+            if (dim == 2)
+                z=val;
+        }
+
+    };
 
     PairFinder(sdmixer *s, QString f);
     void getHeader(QString header_file="");
@@ -49,12 +78,13 @@ public:
     void loadInputFile();
     void saveFile();
     void writeHeader(QTextStream &out, bool AppendHeader=false);
-
+    void writeHeaderUnpaired(QTextStream &out, bool AppendHeader=false);
     void startGrouping();
 
 
 signals:
     void finished();
+    void error(QString msg);
 
 public slots:
     void doWork();
@@ -102,12 +132,15 @@ private:
     std::vector<sdmixer::Localization> grouping_input;
 
     sdmixer *sdm;
-    QString file, fileName, outputFile, groupoutFile;
+    QString file, fileName, outputFile, groupoutFile, unpairedFile;
     QString PairFinderSuffix = "_pairs_out.txt";
     QString GroupedFileSuffix = "_grouped_out.txt";
+    QString UnpairedFileSuffix = "_not_paired_loc.txt";
     QString output_dir;
 
-    std::vector<double> input;
+    QString header;
+
+    std::vector<std::vector<double>> input;
     int row_stop = 0;
 
 
@@ -133,7 +166,7 @@ private:
 
 
     //Output
-    QString header;
+    //QString header;
     int numpairs = 0;
 
 
@@ -146,6 +179,8 @@ private:
     bool runGrouping;
     double groupingRadius;
     QString groupingUnits;
+
+    bool UnpairedOut;
 
 
 };

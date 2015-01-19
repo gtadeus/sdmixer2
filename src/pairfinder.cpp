@@ -253,7 +253,17 @@ void PairFinder::doWork() {
     FindPairs(false);
 
     qDebug() << "found " << numpairs << " pairs";
+    if ( numpairs == 0)
+    {
+        //QMessageBox msgBox;
+       // msgBox.setText("");
 
+       // msgBox.critical(0,"SDmixer Error","No pairs found! Please check input file and offset settings.");
+        /*int ret = msgBox.exec();
+        if(ret == QMessageBox::Ok)*/
+        emit error("No pairs found! Please check input file and offset settings.");
+        return;
+    }
 
 
     std::ostringstream os; os << "found " << numpairs << " pairs." ;
@@ -397,24 +407,44 @@ void PairFinder::loadInputFile()
     QTextStream in(&f);
     QString line = in.readLine();
 
+    int row = 0;
+
     while (!in.atEnd())
     {
         line = in.readLine();
 
         std::vector<std::string> v;
         std::string str = line.toStdString();
+        str.erase(str.begin(),
+                      std::find_if(str.begin(), str.end(),
+                                   std::bind1st(std::not_equal_to<char>(), ' ')));
         boost::split(v, str, boost::is_any_of("\t "));
+
+        std::vector<double> lineVec;
 
         for (auto i : v)
         {
-            input.push_back(strtod(i.c_str(), NULL));
+            lineVec.push_back(strtod(i.c_str(), NULL));
         }
+
+        input.push_back(lineVec);
+        row++;
     }
+    std::sort(input.begin(), input.end(),
+              [&](const std::vector<double>& a, const std::vector<double>& b) {
+      return a[FrameColumn] < b[FrameColumn];
+    });
 
     qDebug() << "total: " << input.size() ;
-    rawDataRows=input.size()/rawDataCols;
+    rawDataRows=input.size();
+    //rawDataRows=row;
+    std::stringstream ss;
+    ss << "found " << rawDataRows << " localizations.";
+    sdm->writeToLogFile(QString::fromStdString(ss.str()));
+
+    //rawDataRows = input.size();
     qDebug() <<  "rows : " << rawDataRows ;
-    qDebug() <<  "firstelement: " << input[0] <<"  last element: " << input[input.size()-1] ;
+    //qDebug() <<  "firstelement: " << input[0] <<"  last element: " << input[input.size()-1] ;
 
 }
 
@@ -427,7 +457,7 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     qfile.open(QIODevice::ReadOnly| QIODevice::Text);
 
     QTextStream in(&qfile);
-    QString header = in.readLine();
+    header = in.readLine();
     qfile.close();
 
     sdm->getHeader(header, columns, min_maxValues, INPUT_FILE);
@@ -518,6 +548,13 @@ PairFinder::PairFinder(sdmixer *s, QString f)
     groupoutFile.append(fileName);
     groupoutFile.append(GroupedFileSuffix);
     qDebug() << "group_out file: " << groupoutFile;
+
+
+    UnpairedOut = sdm->getUnpairedOut();
+    unpairedFile = output_dir;
+    unpairedFile.append("/");
+    unpairedFile.append(fileName);
+    unpairedFile.append(UnpairedFileSuffix);
 }
 
 void PairFinder::getHeader(QString header_file)
@@ -591,6 +628,11 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
         pairs_out.open(QIODevice::WriteOnly | QIODevice::Text);
         writeHeader(out);
     }
+
+
+    int number_unpaired = 0;
+    std::vector<UnpairedLocalization> unpaired_vec;
+
     numpairs=0;
     int curr_row=0;
     int increment = 1;
@@ -601,13 +643,19 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
     else
         endrow = last_frame;
 
-    while (curr_row < endrow)
+    std::vector<int> pair_row_id;
+
+    while (curr_row < endrow-1)
     {
+        /*qDebug() << "curr_row: " << curr_row;
+        qDebug() << "increment: " << increment;*/
         sdmixer::Localization loc;
 
             //qDebug() << input[curr_row*rawDataCols+FrameColumn];
             //qDebug() << input[(curr_row+increment)*rawDataCols+FrameColumn];
-        if( input[curr_row*rawDataCols+FrameColumn] == input[(curr_row+increment)*rawDataCols+FrameColumn] )
+        //if( input[curr_row*rawDataCols+FrameColumn] == input[(curr_row+increment)*rawDataCols+FrameColumn] )
+        //if(curr_row+increment < rawDataRows)
+        if( input[curr_row][FrameColumn] == input[curr_row+increment][FrameColumn] )
         {
             double EllipsoidSumR=0;
             double EllipsoidSumL=0;
@@ -615,9 +663,12 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 //qDebug() << curr_row+increment;
             for (int d = 0; d < dimensions; ++d)
             {
-                double tempL = ((input[curr_row*rawDataCols + d] - Offset[d]) - input[(curr_row+increment)*rawDataCols+d]);
-                double tempR = (input[(curr_row+increment)*rawDataCols+d] - Offset[d]) - input[curr_row*rawDataCols + d];
-                    //qDebug() <<"tempL: "<< tempL;
+                //double tempL = ((input[curr_row*rawDataCols + d] - Offset[d]) - input[(curr_row+increment)*rawDataCols+d]);
+                //double tempR = (input[(curr_row+increment)*rawDataCols+d] - Offset[d]) - input[curr_row*rawDataCols + d];
+                double tempL = ((input[curr_row][d] - Offset[d]) - input[curr_row+increment][d]);
+                double tempR = (input[curr_row+increment][d] - Offset[d]) - input[curr_row][d];
+
+                //qDebug() <<"tempL: "<< tempL;
                     //qDebug() << "tempR: " << tempR;
 
                 tempL*=tempL;
@@ -629,6 +680,10 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
             }
             if (EllipsoidSumL <= 1 || EllipsoidSumR <= 1)
             {
+                pair_row_id.push_back(curr_row);
+                pair_row_id.push_back(curr_row+increment);
+                //qDebug() << "saved " << curr_row << " & " << curr_row+increment;
+
                 ++numpairs;
                     //qDebug() << EllipsoidSumL << " @ " << curr_row << " & " << (curr_row+increment);
                     //qDebug() << EllipsoidSumR << " @ " << curr_row << " & " << (curr_row+increment);
@@ -641,19 +696,21 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 bool factorShort;
                 if(ShortChannel == 1)
                 {
-                        if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                        //if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                    if(input[curr_row][compare_col] < input[curr_row+increment][compare_col])
                             factorShort = false;
                         else
                             factorShort = true;
                 }
                 else
                 {
-                    if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                    //if(input[curr_row*rawDataCols+compare_col] < input[(curr_row+increment)*rawDataCols+compare_col])
+                    if(input[curr_row][compare_col] < input[curr_row+increment][compare_col])
                         factorShort = true;
                     else
                         factorShort = false;
                 }
-                loc.xShort=input[(curr_row+factorShort*increment)*rawDataCols+xCol];
+                /*loc.xShort=input[(curr_row+factorShort*increment)*rawDataCols+xCol];
                 loc.yShort=input[(curr_row+factorShort*increment)*rawDataCols+yCol];
                 if(dimensions>2)
                     loc.zShort=input[(curr_row+factorShort*increment)*rawDataCols+zCol];
@@ -664,6 +721,18 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 if(dimensions>2)
                     loc.zLong=input[(curr_row+(!factorShort)*increment)*rawDataCols+zCol];
                 loc.LongIntensity=input[(curr_row+(!factorShort)*increment)*rawDataCols+IntensityColumn];
+*/
+                loc.xShort=input[curr_row+factorShort*increment][xCol];
+                loc.yShort=input[curr_row+factorShort*increment][yCol];
+                if(dimensions>2)
+                    loc.zShort=input[curr_row+factorShort*increment][zCol];
+                loc.ShortIntensity=input[curr_row+factorShort*increment][IntensityColumn];
+                loc.frame = input[curr_row][FrameColumn];
+                loc.xLong=input[curr_row+(!factorShort)*increment][xCol];
+                loc.yLong=input[curr_row+(!factorShort)*increment][yCol];
+                if(dimensions>2)
+                    loc.zLong=input[curr_row+(!factorShort)*increment][zCol];
+                loc.LongIntensity=input[curr_row+(!factorShort)*increment][IntensityColumn];
 
                 if(!fishing)
                 {
@@ -696,9 +765,8 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
                 grouped_rows.push_back(curr_row);
                 grouped_rows.push_back(curr_row+increment);
 
-
             }
-            if (increment <= rawDataRows)
+            if ((curr_row+increment) < rawDataRows - 1)
                 increment++;
             else
             {
@@ -724,6 +792,50 @@ void PairFinder::FindPairs(bool fishing, int last_frame)
     }
     if(!fishing)
         pairs_out.close();
+
+    if(UnpairedOut && !fishing)
+    {
+        for (int nrow = 0; nrow < rawDataRows; ++nrow)
+        {
+            if(std::find(pair_row_id.begin(), pair_row_id.end(), nrow)==pair_row_id.end())
+            {
+                //qDebug() << nrow;
+
+                UnpairedLocalization uloc;
+                for(int ii = 0; ii < dimensions; ++ii)
+                    uloc.set(ii, input[nrow][ii]);
+                uloc.frame=input[nrow][FrameColumn];
+                uloc.intensity=input[nrow][IntensityColumn];
+
+                unpaired_vec.push_back(uloc);
+                number_unpaired++;
+            }
+        }
+        std::stringstream ss;
+        ss << "found " << number_unpaired << " unpaired localizations.";
+
+        sdm->writeToLogFile(QString::fromStdString(ss.str()));
+        qDebug() << "found " << number_unpaired << " unpaired localizations.";
+
+        QFile unpaired_out(unpairedFile);
+        unpaired_out.open(QIODevice::WriteOnly | QIODevice::Text);
+        QTextStream out(&unpaired_out);
+        out << header << "\n";
+
+        UnpairedLocalization loc;
+
+        for( int i = 0; i < number_unpaired; ++i)
+        {
+            loc = unpaired_vec[i];
+            for(int j = 0; j < dimensions; ++j)
+            {
+                out << loc.get(j) << " ";
+            }
+            out << loc.frame << " ";
+            out << loc.intensity << "\n";
+        }
+        unpaired_out.close();
+    }
 
 
     //sdmixer::log(sdm, os.str());
